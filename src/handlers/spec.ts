@@ -8,6 +8,7 @@
  */
 
 import { randomBytes } from 'node:crypto';
+import { Codex } from '@openai/codex-sdk';
 import { generateSpecPrompt } from '../prompts/spec-generator.js';
 import type { ExecutionJob } from '../types.js';
 
@@ -116,19 +117,34 @@ async function generateSpec(
   runId: string,
   job: ExecutionJob
 ): Promise<void> {
-  // Generate prompt
-  const _prompt = generateSpecPrompt(featureRequest, runId);
+  try {
+    // Generate prompt
+    const prompt = generateSpecPrompt(featureRequest, runId);
 
-  // TODO: Spawn Codex thread with prompt
-  // const codex = new Codex({ workingDirectory: '.' });
-  // const thread = codex.startThread();
-  // const result = await thread.run(_prompt);
-  // Parse SPEC_PATH from result and update job
+    // Spawn Codex thread with prompt
+    const codex = new Codex();
+    const thread = codex.startThread({
+      workingDirectory: process.cwd(),
+    });
+    const result = await thread.run(prompt);
 
-  // For now, simulate async work with a delay
-  // (Real implementation will spawn Codex thread)
-  await new Promise((resolve) => setTimeout(resolve, 100));
+    // Parse SPEC_PATH from result finalResponse
+    // Expected format: "SPEC: specs/abc123-feature/spec.md"
+    const specPathMatch = result.finalResponse.match(/SPEC:\s*(.+\.md)/);
+    const specPath = specPathMatch?.[1];
 
-  job.status = 'completed';
-  job.completedAt = new Date();
+    // Update job with completion status
+    job.status = 'completed';
+    job.completedAt = new Date();
+
+    // Store spec path in error field (reusing existing field for output)
+    if (specPath) {
+      job.error = `Spec generated at ${specPath}`;
+    }
+  } catch (error) {
+    // Handle errors in background execution
+    job.status = 'failed';
+    job.error = String(error instanceof Error ? error.message : error);
+    job.completedAt = new Date();
+  }
 }
