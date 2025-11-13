@@ -15,7 +15,7 @@
  */
 
 import { Codex } from '@openai/codex-sdk';
-import type { Phase, Plan } from '../types.js';
+import type { Phase, Plan } from '../types';
 
 /**
  * Maximum number of rejections before escalation.
