@@ -13,13 +13,15 @@
 import { describe, expect, it } from 'vitest';
 import { handlePlan } from '@/handlers/plan';
 import type { ExecutionJob } from '@/types';
+import { extractMCPData } from '@/utils/__tests__/test-helpers';
 
 describe('handlePlan', () => {
   it('should return immediately with run_id and status', async () => {
     const args = { spec_path: 'specs/abc123-feature/spec.md' };
     const jobs = new Map<string, ExecutionJob>();
 
-    const result = await handlePlan(args, jobs);
+    const response = await handlePlan(args, jobs);
+    const result = extractMCPData<any>(response);
 
     expect(result).toEqual({
       run_id: 'abc123',
@@ -31,7 +33,8 @@ describe('handlePlan', () => {
     const args = { spec_path: 'specs/def456-auth-system/spec.md' };
     const jobs = new Map<string, ExecutionJob>();
 
-    const result = await handlePlan(args, jobs);
+    const response = await handlePlan(args, jobs);
+    const result = extractMCPData<any>(response);
 
     expect(result.run_id).toBe('def456');
   });
@@ -65,7 +68,8 @@ describe('handlePlan', () => {
     await handlePlan(args, jobs);
 
     // Second call should succeed (plan generation is idempotent)
-    const result = await handlePlan(args, jobs);
+    const response = await handlePlan(args, jobs);
+    const result = extractMCPData<any>(response);
 
     expect(result.run_id).toBe('abc123');
   });

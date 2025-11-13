@@ -20,6 +20,7 @@ import { handlePlan } from '@/handlers/plan';
 import { handleSpec } from '@/handlers/spec';
 import { handleStatus } from '@/handlers/status';
 import type { ExecutionJob } from '@/types';
+import { formatMCPError } from '@/utils/mcp-response';
 
 // Job tracker (in-memory state shared across handlers)
 const jobs = new Map<string, ExecutionJob>();
@@ -124,11 +125,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error) {
-    // Error handling at layer boundary
-    return {
-      error: String(error instanceof Error ? error.message : error),
-      status: 'failed',
-    };
+    // Error handling at layer boundary (MCP format)
+    return formatMCPError(error instanceof Error ? error : new Error(String(error)));
   }
 });
 
@@ -138,8 +136,9 @@ async function main() {
   await server.connect(transport);
 }
 
-// Only run main() if executed directly (not during tests)
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run main() unless we're in test mode (NODE_ENV=test or vitest detected)
+const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+if (!isTest) {
   // biome-ignore lint/suspicious/noConsole: Entry point needs error logging
   main().catch(console.error);
 }

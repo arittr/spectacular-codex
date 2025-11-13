@@ -11,6 +11,7 @@
 import { Codex } from '@openai/codex-sdk';
 import { generatePlanPrompt } from '@/prompts/plan-generator';
 import type { ExecutionJob } from '@/types';
+import { formatMCPResponse, type MCPToolResponse } from '@/utils/mcp-response';
 import { validatePlanPath } from '@/utils/validation';
 
 /**
@@ -47,7 +48,7 @@ export interface PlanResponse {
 export async function handlePlan(
   args: PlanArgs,
   jobs: Map<string, ExecutionJob>
-): Promise<{ run_id: string; status: string }> {
+): Promise<MCPToolResponse> {
   // Validate inputs
   if (!args.spec_path) {
     throw new Error('spec_path is required');
@@ -91,11 +92,11 @@ export async function handlePlan(
     job.completedAt = new Date();
   });
 
-  // Return immediately
-  return {
+  // Return immediately (MCP format)
+  return formatMCPResponse({
     run_id: runId,
     status: 'started',
-  };
+  });
 }
 
 /**

@@ -8,6 +8,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleSpec } from '@/handlers/spec';
 import type { ExecutionJob } from '@/types';
+import { extractMCPData } from '@/utils/__tests__/test-helpers';
 
 describe('handleSpec', () => {
   // Job tracker that handler will use
@@ -40,7 +41,8 @@ describe('handleSpec', () => {
 
   describe('async job pattern', () => {
     it('returns immediately with run_id and status', async () => {
-      const result = await handleSpec({ feature_request: 'Add dark mode' }, jobs);
+      const response = await handleSpec({ feature_request: 'Add dark mode' }, jobs);
+      const result = extractMCPData<{ run_id: string; status: string }>(response);
 
       // Should return immediately
       expect(result).toHaveProperty('run_id');
@@ -49,8 +51,10 @@ describe('handleSpec', () => {
     });
 
     it('generates unique runIds for different requests', async () => {
-      const result1 = await handleSpec({ feature_request: 'Feature 1' }, jobs);
-      const result2 = await handleSpec({ feature_request: 'Feature 2' }, jobs);
+      const response1 = await handleSpec({ feature_request: 'Feature 1' }, jobs);
+      const response2 = await handleSpec({ feature_request: 'Feature 2' }, jobs);
+      const result1 = extractMCPData<{ run_id: string }>(response1);
+      const result2 = extractMCPData<{ run_id: string }>(response2);
 
       expect(result1.run_id).not.toBe(result2.run_id);
       expect(result1.run_id).toMatch(/^[0-9a-f]{6}$/i);
@@ -58,7 +62,8 @@ describe('handleSpec', () => {
     });
 
     it('creates job with correct initial state', async () => {
-      const result = await handleSpec({ feature_request: 'Test feature' }, jobs);
+      const response = await handleSpec({ feature_request: 'Test feature' }, jobs);
+      const result = extractMCPData<{ run_id: string }>(response);
 
       const job = jobs.get(result.run_id);
       expect(job).toBeDefined();
@@ -85,7 +90,8 @@ describe('handleSpec', () => {
 
   describe('background execution', () => {
     it('spawns spec generation in background after returning', async () => {
-      const result = await handleSpec({ feature_request: 'Background test' }, jobs);
+      const response = await handleSpec({ feature_request: 'Background test' }, jobs);
+      const result = extractMCPData<{ run_id: string }>(response);
 
       // Give background execution time to start
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -97,7 +103,8 @@ describe('handleSpec', () => {
 
   describe('runId format', () => {
     it('generates 6-character hexadecimal runId', async () => {
-      const result = await handleSpec({ feature_request: 'Test' }, jobs);
+      const response = await handleSpec({ feature_request: 'Test' }, jobs);
+      const result = extractMCPData<{ run_id: string }>(response);
 
       expect(result.run_id).toHaveLength(6);
       expect(result.run_id).toMatch(/^[0-9a-f]{6}$/i);

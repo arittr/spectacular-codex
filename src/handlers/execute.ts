@@ -9,6 +9,7 @@
 
 import { promises as fs } from 'node:fs';
 import type { ExecutionJob, Plan } from '@/types';
+import { formatMCPResponse, type MCPToolResponse } from '@/utils/mcp-response';
 import { extractRunId, parsePlan } from '@/utils/plan-parser';
 import { validatePlanPath } from '@/utils/validation';
 
@@ -44,7 +45,7 @@ export interface ExecuteResponse {
 export async function handleExecute(
   args: ExecuteArgs,
   jobs: Map<string, ExecutionJob>
-): Promise<ExecuteResponse> {
+): Promise<MCPToolResponse> {
   // Validate inputs
   if (!args.plan_path) {
     throw new Error('plan_path is required');
@@ -97,11 +98,11 @@ export async function handleExecute(
     job.completedAt = new Date();
   });
 
-  // Return immediately
-  return {
+  // Return immediately (MCP format)
+  return formatMCPResponse({
     run_id: runId,
     status: 'started',
-  };
+  });
 }
 
 /**

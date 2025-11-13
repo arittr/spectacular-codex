@@ -7,6 +7,7 @@
  */
 
 import type { ExecutionJob } from '@/types';
+import { formatMCPResponse, type MCPToolResponse } from '@/utils/mcp-response';
 import { validateRunId } from '@/utils/validation';
 
 /**
@@ -47,7 +48,7 @@ export interface StatusResponse {
 export async function handleStatus(
   args: StatusArgs,
   jobs: Map<string, ExecutionJob>
-): Promise<StatusResponse> {
+): Promise<MCPToolResponse> {
   // Validate inputs
   if (!args.run_id) {
     throw new Error('run_id is required');
@@ -86,5 +87,6 @@ export async function handleStatus(
     response.error = job.error;
   }
 
-  return response;
+  // Return in MCP format
+  return formatMCPResponse(response);
 }

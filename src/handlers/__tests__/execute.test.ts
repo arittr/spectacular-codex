@@ -9,6 +9,7 @@ import { promises as fs } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleExecute } from '@/handlers/execute';
 import type { ExecutionJob } from '@/types';
+import { extractMCPData } from '@/utils/__tests__/test-helpers';
 
 // Mock the orchestrator modules
 vi.mock('@/orchestrator/parallel-phase', () => ({
@@ -82,7 +83,8 @@ Feature: test-feature
       // Mock fs.readFile
       vi.spyOn(fs, 'readFile').mockResolvedValue(planContent);
 
-      const result = await handleExecute({ plan_path: planPath }, jobs);
+      const response = await handleExecute({ plan_path: planPath }, jobs);
+      const result = extractMCPData<{ run_id: string; status: string }>(response);
 
       // Should return immediately
       expect(result).toEqual({
@@ -377,7 +379,8 @@ Feature: retry
       jobs.delete('ffeedd');
 
       // Second execution should succeed
-      const result = await handleExecute({ plan_path: planPath }, jobs);
+      const response = await handleExecute({ plan_path: planPath }, jobs);
+      const result = extractMCPData<{ run_id: string }>(response);
       expect(result.run_id).toBe('ffeedd');
     });
   });

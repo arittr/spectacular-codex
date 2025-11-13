@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { handleStatus } from '@/handlers/status';
 import type { ExecutionJob } from '@/types';
+import { extractMCPData } from '@/utils/__tests__/test-helpers';
 
 describe('handleStatus', () => {
   it('returns running status for active job', async () => {
@@ -28,7 +29,14 @@ describe('handleStatus', () => {
     };
     jobs.set('abc123', job);
 
-    const result = await handleStatus({ run_id: 'abc123' }, jobs);
+    const response = await handleStatus({ run_id: 'abc123' }, jobs);
+    const result = extractMCPData<{
+      status: string;
+      run_id: string;
+      phase: number;
+      tasks: unknown[];
+      started_at: string;
+    }>(response);
 
     expect(result.status).toBe('running');
     expect(result.run_id).toBe('abc123');
@@ -55,13 +63,14 @@ describe('handleStatus', () => {
     };
     jobs.set('def456', job);
 
-    const result = await handleStatus({ run_id: 'def456' }, jobs);
+    const response = await handleStatus({ run_id: 'def456' }, jobs);
+    const result = extractMCPData<any>(response);
 
     expect(result.status).toBe('completed');
     expect(result.run_id).toBe('def456');
     expect(result.phase).toBe(3);
     expect(result.tasks?.length).toBe(3);
-    expect(result.tasks?.every((t) => t.status === 'completed')).toBe(true);
+    expect(result.tasks?.every((t: { status: string }) => t.status === 'completed')).toBe(true);
     expect(result.completed_at).toBe(completedAt.toISOString());
   });
 
@@ -85,7 +94,8 @@ describe('handleStatus', () => {
     };
     jobs.set('aaa123', job);
 
-    const result = await handleStatus({ run_id: 'aaa123' }, jobs);
+    const response = await handleStatus({ run_id: 'aaa123' }, jobs);
+    const result = extractMCPData<any>(response);
 
     expect(result.status).toBe('failed');
     expect(result.run_id).toBe('aaa123');
@@ -112,13 +122,16 @@ describe('handleStatus', () => {
     };
     jobs.set('bbb456', job);
 
-    const result = await handleStatus({ run_id: 'bbb456' }, jobs);
+    const response = await handleStatus({ run_id: 'bbb456' }, jobs);
+    const result = extractMCPData<any>(response);
 
     expect(result.status).toBe('running');
     expect(result.tasks?.length).toBe(5);
-    expect(result.tasks?.filter((t) => t.status === 'completed').length).toBe(2);
-    expect(result.tasks?.filter((t) => t.status === 'pending').length).toBe(2);
-    expect(result.tasks?.filter((t) => t.status === 'running').length).toBe(1);
+    expect(result.tasks?.filter((t: { status: string }) => t.status === 'completed').length).toBe(
+      2
+    );
+    expect(result.tasks?.filter((t: { status: string }) => t.status === 'pending').length).toBe(2);
+    expect(result.tasks?.filter((t: { status: string }) => t.status === 'running').length).toBe(1);
   });
 
   it('omits optional fields when not present', async () => {
@@ -133,7 +146,8 @@ describe('handleStatus', () => {
     };
     jobs.set('ccc789', job);
 
-    const result = await handleStatus({ run_id: 'ccc789' }, jobs);
+    const response = await handleStatus({ run_id: 'ccc789' }, jobs);
+    const result = extractMCPData<any>(response);
 
     expect(result.status).toBe('running');
     expect(result.error).toBeUndefined();

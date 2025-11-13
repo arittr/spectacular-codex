@@ -228,8 +228,13 @@ describe('MCP Server Core', () => {
     });
 
     expect(result).toEqual({
-      error: 'Unknown tool: unknown_tool',
-      status: 'failed',
+      content: [
+        {
+          text: JSON.stringify({ error: 'Unknown tool: unknown_tool' }, null, 2),
+          type: 'text',
+        },
+      ],
+      isError: true,
     });
   });
 
@@ -250,8 +255,13 @@ describe('MCP Server Core', () => {
     });
 
     expect(result).toEqual({
-      error: 'Plan not found',
-      status: 'failed',
+      content: [
+        {
+          text: JSON.stringify({ error: 'Plan not found' }, null, 2),
+          type: 'text',
+        },
+      ],
+      isError: true,
     });
   });
 

@@ -11,6 +11,7 @@ import { randomBytes } from 'node:crypto';
 import { Codex } from '@openai/codex-sdk';
 import { generateSpecPrompt } from '@/prompts/spec-generator';
 import type { ExecutionJob } from '@/types';
+import { formatMCPResponse, type MCPToolResponse } from '@/utils/mcp-response';
 
 /**
  * Arguments for the spec handler.
@@ -54,7 +55,7 @@ export function generateRunId(): string {
 export async function handleSpec(
   args: SpecArgs,
   jobs: Map<string, ExecutionJob>
-): Promise<SpecResponse> {
+): Promise<MCPToolResponse> {
   // Validate inputs
   if (args.feature_request === undefined || args.feature_request === null) {
     throw new Error('feature_request is required');
@@ -92,11 +93,11 @@ export async function handleSpec(
     job.completedAt = new Date();
   });
 
-  // Return immediately
-  return {
+  // Return immediately (MCP format)
+  return formatMCPResponse({
     run_id: runId,
     status: 'started',
-  };
+  });
 }
 
 /**
