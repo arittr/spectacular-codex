@@ -106,6 +106,9 @@ export interface ExecutionJob {
   /** Current phase being executed (1-based) */
   phase: number;
 
+  /** Total number of phases in plan */
+  totalPhases: number;
+
   /** Task completion status */
   tasks: Array<{
     /** Task ID */
