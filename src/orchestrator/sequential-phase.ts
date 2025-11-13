@@ -15,48 +15,9 @@
  * @module orchestrator/sequential-phase
  */
 
+import { Codex } from '@openai/codex-sdk';
 import type { ExecutionJob, Phase, Plan } from '../types.js';
 import { checkExistingWork } from '../utils/branch-tracker.js';
-
-// Stub Codex SDK import (will be replaced when SDK is installed)
-// For now, we'll define a minimal interface to satisfy TypeScript
-interface CodexConfig {
-  workingDirectory: string;
-}
-
-interface CodexThread {
-  run(prompt: string): Promise<{ output: string }>;
-}
-
-interface CodexInstance {
-  startThread(): CodexThread;
-}
-
-// Stub Codex constructor (will be imported from @openai/codex)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-let Codex: new (config: CodexConfig) => CodexInstance;
-
-// Try to import real Codex SDK, fall back to stub if not available
-try {
-  // @ts-expect-error - Module may not exist yet
-  const codexModule = await import('@openai/codex');
-  Codex = codexModule.Codex;
-} catch {
-  // SDK not installed yet, create a stub for type checking
-  Codex = function StubCodex(_config: CodexConfig): CodexInstance {
-    return {
-      startThread(): CodexThread {
-        return {
-          async run(_prompt: string): Promise<{ output: string }> {
-            throw new Error('Codex SDK not installed. This is a stub implementation.');
-          },
-        };
-      },
-    };
-  } as unknown as new (
-    config: CodexConfig
-  ) => CodexInstance;
-}
 
 /**
  * Extracts branch name from Codex thread output.
@@ -187,12 +148,13 @@ export async function executeSequentialPhase(
       updateJobTaskStatus(job, task.id, { status: 'running' });
 
       try {
-        // Create isolated Codex instance
-        const codex = new Codex({
+        // Create Codex instance
+        const codex = new Codex();
+
+        // Start thread with working directory
+        const thread = codex.startThread({
           workingDirectory: mainWorktreePath,
         });
-
-        const thread = codex.startThread();
 
         // Generate prompt (stub for now, will use task-executor.ts later)
         const prompt = generateTaskPrompt(task.id, plan);
@@ -200,8 +162,8 @@ export async function executeSequentialPhase(
         // Execute task
         const result = await thread.run(prompt);
 
-        // Extract branch name from output
-        const branch = extractBranchName(result.output);
+        // Extract branch name from finalResponse
+        const branch = extractBranchName(result.finalResponse);
 
         // Update task status: completed
         const completedStatus: { status: 'completed'; branch?: string } = {

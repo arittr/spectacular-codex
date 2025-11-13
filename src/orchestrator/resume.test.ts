@@ -33,7 +33,7 @@ interface MockCodexInstance {
 // Create a factory function that creates fresh instances
 function createMockCodexInstance(): MockCodexInstance {
   const mockThread: MockCodexThread = {
-    run: vi.fn().mockResolvedValue({ output: 'BRANCH: test-branch-name' }),
+    run: vi.fn().mockResolvedValue({ finalResponse: 'BRANCH: test-branch-name' }),
   };
 
   return {
@@ -44,7 +44,7 @@ function createMockCodexInstance(): MockCodexInstance {
 const mockCodexInstances: MockCodexInstance[] = [];
 
 // Stub Codex constructor for now (will be replaced when SDK is installed)
-vi.mock('@openai/codex', () => {
+vi.mock('@openai/codex-sdk', () => {
   const MockCodexConstructor = vi
     .fn()
     .mockImplementation((_config: { workingDirectory: string }) => {
