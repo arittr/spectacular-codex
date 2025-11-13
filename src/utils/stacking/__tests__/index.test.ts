@@ -3,11 +3,11 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GitSpiceBackend } from './git-spice.js';
-import { getStackingBackend } from './index.js';
+import { GitSpiceBackend } from '../git-spice';
+import { getStackingBackend } from '../index';
 
 // Mock git-spice backend
-vi.mock('./git-spice.js', () => ({
+vi.mock('../git-spice.js', () => ({
   GitSpiceBackend: vi.fn(),
 }));
 

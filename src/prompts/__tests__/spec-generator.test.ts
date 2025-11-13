@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { generateSpecPrompt } from './spec-generator.js';
+import { generateSpecPrompt } from '@/prompts/spec-generator';
 
 describe('generateSpecPrompt', () => {
   it('should include feature request in prompt', () => {

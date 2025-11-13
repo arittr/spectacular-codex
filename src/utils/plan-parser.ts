@@ -1,4 +1,4 @@
-import type { Phase, Plan, Task } from '../types.js';
+import type { Phase, Plan, Task } from '../types';
 
 /**
  * Extracts the runId from a plan.md file path.
