@@ -38,9 +38,11 @@ const mockCodex = {
 
 // Stub Codex constructor for now (will be replaced when SDK is installed)
 vi.mock('@openai/codex', () => {
-  const MockCodexConstructor = vi.fn().mockImplementation((config: { workingDirectory: string }) => {
-    return mockCodex.create(config.workingDirectory);
-  });
+  const MockCodexConstructor = vi
+    .fn()
+    .mockImplementation((config: { workingDirectory: string }) => {
+      return mockCodex.create(config.workingDirectory);
+    });
 
   return {
     // biome-ignore lint/style/useNamingConvention: Codex is a proper class name (PascalCase required)
@@ -101,6 +103,7 @@ describe('parallel-phase orchestrator', () => {
       startedAt: new Date(),
       status: 'running',
       tasks: [],
+      totalPhases: 3,
     };
   });
 
