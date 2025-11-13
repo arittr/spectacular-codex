@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execa } from 'execa';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { Phase, Task } from '../types.js';
-import { checkExistingWork, isTaskComplete } from './branch-tracker.js';
-import { findBranch } from './git.js';
+import type { Phase, Task } from '@/types';
+import { checkExistingWork, isTaskComplete } from '@/utils/branch-tracker';
+import { findBranch } from '@/utils/git';
 
 let testDir: string;
 

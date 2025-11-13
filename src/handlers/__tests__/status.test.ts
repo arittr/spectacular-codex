@@ -8,8 +8,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { ExecutionJob } from '../types.js';
-import { handleStatus } from './status.js';
+import { handleStatus } from '@/handlers/status';
+import type { ExecutionJob } from '@/types';
 
 describe('handleStatus', () => {
   it('returns running status for active job', async () => {

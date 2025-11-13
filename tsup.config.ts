@@ -9,4 +9,5 @@ export default defineConfig({
   minify: !isDev,
   ...(isDev && { onSuccess: 'node dist/index.js' }),
   target: 'esnext',
+  tsconfig: './tsconfig.json',
 });
