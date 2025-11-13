@@ -15,11 +15,11 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { handleExecute } from './handlers/execute.js';
-import { handlePlan } from './handlers/plan.js';
-import { handleSpec } from './handlers/spec.js';
-import { handleStatus } from './handlers/status.js';
-import type { ExecutionJob } from './types.js';
+import { handleExecute } from './handlers/execute';
+import { handlePlan } from './handlers/plan';
+import { handleSpec } from './handlers/spec';
+import { handleStatus } from './handlers/status';
+import type { ExecutionJob } from './types';
 
 // Job tracker (in-memory state shared across handlers)
 const jobs = new Map<string, ExecutionJob>();

@@ -8,9 +8,9 @@
  */
 
 import { promises as fs } from 'node:fs';
-import type { ExecutionJob, Plan } from '../types.js';
-import { extractRunId, parsePlan } from '../utils/plan-parser.js';
-import { validatePlanPath } from '../utils/validation.js';
+import type { ExecutionJob, Plan } from '../types';
+import { extractRunId, parsePlan } from '../utils/plan-parser';
+import { validatePlanPath } from '../utils/validation';
 
 /**
  * Arguments for the execute handler.
@@ -122,7 +122,7 @@ async function executePhases(plan: Plan, job: ExecutionJob): Promise<void> {
 
     if (phase.strategy === 'parallel') {
       // Dynamic import to avoid circular dependency
-      const { executeParallelPhase } = await import('../orchestrator/parallel-phase.js');
+      const { executeParallelPhase } = await import('../orchestrator/parallel-phase');
       await executeParallelPhase(phase, plan, job);
     } else {
       // Sequential phase
