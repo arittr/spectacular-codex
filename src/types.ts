@@ -169,3 +169,55 @@ export interface ExistingWork {
   /** Tasks that still need to be executed */
   pendingTasks: Task[];
 }
+
+/**
+ * Handoff package from interactive brainstorming to spec generation.
+ *
+ * This contains all the validated requirements, architectural decisions,
+ * and design rationale gathered during the interactive brainstorming phase.
+ */
+export interface SpecHandoffPackage {
+  /** Unique run identifier (6-char hex) */
+  runId: string;
+
+  /** Feature slug (kebab-case) */
+  feature: string;
+
+  /** Original feature request from user */
+  featureRequest: string;
+
+  /** Validated requirements */
+  requirements: {
+    /** Functional requirements (what it must do) */
+    functional: string[];
+    /** Non-functional requirements (performance, security, UX) */
+    nonFunctional: string[];
+    /** Acceptance criteria (how to verify completion) */
+    acceptanceCriteria: string[];
+  };
+
+  /** Architectural decisions */
+  architecture: {
+    /** Selected approach from exploration phase */
+    approach: string;
+    /** Affected layers */
+    layers: string[];
+    /** Patterns to use */
+    patterns: string[];
+    /** Libraries/tech stack */
+    techStack: string[];
+  };
+
+  /** Design decisions with rationale */
+  decisions: Array<{
+    /** Question asked during brainstorming */
+    question: string;
+    /** User's answer/choice */
+    choice: string;
+    /** Why this choice makes sense */
+    rationale: string;
+  }>;
+
+  /** Explicitly out of scope */
+  outOfScope: string[];
+}

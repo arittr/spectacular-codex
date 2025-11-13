@@ -16,8 +16,10 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { handleExecute } from '@/handlers/execute';
+import { handleInit } from '@/handlers/init';
 import { handlePlan } from '@/handlers/plan';
 import { handleSpec } from '@/handlers/spec';
+import { handleSpecGenerate } from '@/handlers/spec-generate';
 import { handleStatus } from '@/handlers/status';
 import type { ExecutionJob } from '@/types';
 import { formatMCPError } from '@/utils/mcp-response';
@@ -102,6 +104,37 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
         name: 'spectacular_plan',
       },
+      {
+        description:
+          'Install the /spectacular:spec slash command to ~/.codex/prompts/. This enables interactive brainstorming workflow for spec generation.',
+        inputSchema: {
+          properties: {
+            force: {
+              description: 'Force overwrite if slash command already exists',
+              type: 'boolean',
+            },
+          },
+          required: [],
+          type: 'object',
+        },
+        name: 'spectacular_init',
+      },
+      {
+        description:
+          'Generate specification from validated brainstorming handoff. This is called automatically by /spectacular:spec slash command after interactive brainstorming completes.',
+        inputSchema: {
+          properties: {
+            handoff: {
+              description:
+                'Validated requirements package from interactive brainstorming (runId, feature, requirements, architecture, decisions, outOfScope)',
+              type: 'object',
+            },
+          },
+          required: ['handoff'],
+          type: 'object',
+        },
+        name: 'spectacular_spec_generate',
+      },
     ],
   };
 });
@@ -119,8 +152,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return await handleStatus(args, jobs);
       case 'spectacular_spec':
         return await handleSpec(args, jobs);
+      case 'spectacular_spec_generate':
+        return await handleSpecGenerate(args, jobs);
       case 'spectacular_plan':
         return await handlePlan(args, jobs);
+      case 'spectacular_init':
+        return await handleInit(args, jobs);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
