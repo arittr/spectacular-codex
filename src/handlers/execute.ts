@@ -83,6 +83,7 @@ export async function handleExecute(
     startedAt: new Date(),
     status: 'running',
     tasks: [],
+    totalPhases: plan.phases.length,
   };
 
   jobs.set(runId, job);
