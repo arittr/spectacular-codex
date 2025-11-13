@@ -69,10 +69,7 @@ describe('MCP Server Core', () => {
     await import('./index.js');
 
     // Server should register a tools/call handler
-    expect(mockSetRequestHandler).toHaveBeenCalledWith(
-      'tools/call',
-      expect.any(Function)
-    );
+    expect(mockSetRequestHandler).toHaveBeenCalledWith('tools/call', expect.any(Function));
   });
 
   it('registers tools/list request handler', async () => {
@@ -80,10 +77,7 @@ describe('MCP Server Core', () => {
     await import('./index.js');
 
     // Server should register a tools/list handler
-    expect(mockSetRequestHandler).toHaveBeenCalledWith(
-      'tools/list',
-      expect.any(Function)
-    );
+    expect(mockSetRequestHandler).toHaveBeenCalledWith('tools/list', expect.any(Function));
   });
 
   it('routes spectacular_execute to handleExecute', async () => {
@@ -104,8 +98,8 @@ describe('MCP Server Core', () => {
     // Call the handler
     const result = await callHandler({
       params: {
-        name: 'spectacular_execute',
         arguments: { plan_path: 'specs/abc123/plan.md' },
+        name: 'spectacular_execute',
       },
     });
 
@@ -122,9 +116,9 @@ describe('MCP Server Core', () => {
 
   it('routes spectacular_status to handleStatus', async () => {
     mockStatusHandler.mockResolvedValue({
+      phase: 1,
       run_id: 'abc123',
       status: 'running',
-      phase: 1,
       tasks: [],
     });
 
@@ -136,20 +130,17 @@ describe('MCP Server Core', () => {
 
     const result = await callHandler({
       params: {
-        name: 'spectacular_status',
         arguments: { run_id: 'abc123' },
+        name: 'spectacular_status',
       },
     });
 
-    expect(mockStatusHandler).toHaveBeenCalledWith(
-      { run_id: 'abc123' },
-      expect.any(Map)
-    );
+    expect(mockStatusHandler).toHaveBeenCalledWith({ run_id: 'abc123' }, expect.any(Map));
 
     expect(result).toEqual({
+      phase: 1,
       run_id: 'abc123',
       status: 'running',
-      phase: 1,
       tasks: [],
     });
   });
@@ -168,8 +159,8 @@ describe('MCP Server Core', () => {
 
     const result = await callHandler({
       params: {
-        name: 'spectacular_spec',
         arguments: { description: 'Test feature' },
+        name: 'spectacular_spec',
       },
     });
 
@@ -197,8 +188,8 @@ describe('MCP Server Core', () => {
 
     const result = await callHandler({
       params: {
-        name: 'spectacular_plan',
         arguments: { spec_path: 'specs/my-feature/spec.md' },
+        name: 'spectacular_plan',
       },
     });
 
@@ -221,8 +212,8 @@ describe('MCP Server Core', () => {
 
     const result = await callHandler({
       params: {
-        name: 'unknown_tool',
         arguments: {},
+        name: 'unknown_tool',
       },
     });
 
@@ -243,8 +234,8 @@ describe('MCP Server Core', () => {
 
     const result = await callHandler({
       params: {
-        name: 'spectacular_execute',
         arguments: { plan_path: 'invalid.md' },
+        name: 'spectacular_execute',
       },
     });
 
@@ -259,29 +250,28 @@ describe('MCP Server Core', () => {
     mockExecuteHandler.mockImplementation(
       async (args: unknown, jobs: Map<string, ExecutionJob>) => {
         jobs.set('abc123', {
-          runId: 'abc123',
-          status: 'running',
           phase: 1,
-          tasks: [],
+          runId: 'abc123',
           startedAt: new Date(),
+          status: 'running',
+          tasks: [],
+          totalPhases: 2,
         });
         return { run_id: 'abc123', status: 'started' };
       }
     );
 
     // Setup: Status retrieves the job
-    mockStatusHandler.mockImplementation(
-      async (args: unknown, jobs: Map<string, ExecutionJob>) => {
-        const job = jobs.get('abc123');
-        if (!job) throw new Error('Job not found');
-        return {
-          run_id: job.runId,
-          status: job.status,
-          phase: job.phase,
-          tasks: job.tasks,
-        };
-      }
-    );
+    mockStatusHandler.mockImplementation(async (args: unknown, jobs: Map<string, ExecutionJob>) => {
+      const job = jobs.get('abc123');
+      if (!job) throw new Error('Job not found');
+      return {
+        phase: job.phase,
+        run_id: job.runId,
+        status: job.status,
+        tasks: job.tasks,
+      };
+    });
 
     await import('./index.js');
 
@@ -292,23 +282,23 @@ describe('MCP Server Core', () => {
     // Execute
     await callHandler({
       params: {
-        name: 'spectacular_execute',
         arguments: { plan_path: 'specs/abc123/plan.md' },
+        name: 'spectacular_execute',
       },
     });
 
     // Status should see the job
     const statusResult = await callHandler({
       params: {
-        name: 'spectacular_status',
         arguments: { run_id: 'abc123' },
+        name: 'spectacular_status',
       },
     });
 
     expect(statusResult).toEqual({
+      phase: 1,
       run_id: 'abc123',
       status: 'running',
-      phase: 1,
       tasks: [],
     });
   });
@@ -327,44 +317,44 @@ describe('MCP Server Core', () => {
     expect(result).toEqual({
       tools: [
         {
-          name: 'spectacular_execute',
           description: expect.stringContaining('Execute implementation plan'),
           inputSchema: expect.objectContaining({
-            type: 'object',
             properties: expect.objectContaining({
               plan_path: expect.any(Object),
             }),
+            type: 'object',
           }),
+          name: 'spectacular_execute',
         },
         {
-          name: 'spectacular_status',
           description: expect.stringContaining('Get execution status'),
           inputSchema: expect.objectContaining({
-            type: 'object',
             properties: expect.objectContaining({
               run_id: expect.any(Object),
             }),
+            type: 'object',
           }),
+          name: 'spectacular_status',
         },
         {
-          name: 'spectacular_spec',
           description: expect.stringContaining('Generate feature specification'),
           inputSchema: expect.objectContaining({
-            type: 'object',
             properties: expect.objectContaining({
               description: expect.any(Object),
             }),
+            type: 'object',
           }),
+          name: 'spectacular_spec',
         },
         {
-          name: 'spectacular_plan',
           description: expect.stringContaining('Generate implementation plan'),
           inputSchema: expect.objectContaining({
-            type: 'object',
             properties: expect.objectContaining({
               spec_path: expect.any(Object),
             }),
+            type: 'object',
           }),
+          name: 'spectacular_plan',
         },
       ],
     });
