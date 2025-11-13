@@ -20,7 +20,7 @@ interface MockCodexInstance {
 const mockCodex = {
   create(_workingDirectory: string): MockCodexInstance {
     const mockThread: MockCodexThread = {
-      run: vi.fn().mockResolvedValue({ output: 'BRANCH: test-branch-name' }),
+      run: vi.fn().mockResolvedValue({ finalResponse: 'BRANCH: test-branch-name' }),
     };
 
     const instance: MockCodexInstance = {
@@ -37,7 +37,7 @@ const mockCodex = {
 };
 
 // Stub Codex constructor for now (will be replaced when SDK is installed)
-vi.mock('@openai/codex', () => {
+vi.mock('@openai/codex-sdk', () => {
   const MockCodexConstructor = vi
     .fn()
     .mockImplementation((config: { workingDirectory: string }) => {
@@ -157,7 +157,7 @@ describe('parallel-phase orchestrator', () => {
         const mockThread: MockCodexThread = {
           run: shouldFail
             ? vi.fn().mockRejectedValue(new Error('Task execution failed'))
-            : vi.fn().mockResolvedValue({ output: 'BRANCH: test-branch' }),
+            : vi.fn().mockResolvedValue({ finalResponse: 'BRANCH: test-branch' }),
         };
 
         const instance: MockCodexInstance = {
