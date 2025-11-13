@@ -10,6 +10,7 @@
 import { promises as fs } from 'node:fs';
 import type { ExecutionJob, Plan } from '../types.js';
 import { extractRunId, parsePlan } from '../utils/plan-parser.js';
+import { validatePlanPath } from '../utils/validation.js';
 
 /**
  * Arguments for the execute handler.
@@ -57,6 +58,9 @@ export async function handleExecute(
 
   const planPath = args.plan_path;
 
+  // Validate plan path (security: prevent path traversal)
+  validatePlanPath(planPath);
+
   // Extract runId from path
   const runId = extractRunId(planPath);
 
@@ -83,6 +87,7 @@ export async function handleExecute(
     startedAt: new Date(),
     status: 'running',
     tasks: [],
+    totalPhases: plan.phases.length,
   };
 
   jobs.set(runId, job);
