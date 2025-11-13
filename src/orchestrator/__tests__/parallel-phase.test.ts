@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExecutionJob, Phase, Plan } from '../types.js';
-import * as branchTracker from '../utils/branch-tracker.js';
-import * as git from '../utils/git.js';
-import { executeParallelPhase } from './parallel-phase.js';
+import { executeParallelPhase } from '@/orchestrator/parallel-phase';
+import type { ExecutionJob, Phase, Plan } from '@/types';
+import * as branchTracker from '@/utils/branch-tracker';
+import * as git from '@/utils/git';
 
 // Mock dependencies
-vi.mock('../utils/git.js');
-vi.mock('../utils/branch-tracker.js');
+vi.mock('@/utils/git');
+vi.mock('@/utils/branch-tracker');
 
-// Mock Codex SDK (not yet installed, so we'll stub it)
+// Mock Codex SDK
 interface MockCodexThread {
   run: ReturnType<typeof vi.fn>;
 }
@@ -17,8 +17,17 @@ interface MockCodexInstance {
   startThread: ReturnType<typeof vi.fn>;
 }
 
-const mockCodex = {
-  create(_workingDirectory: string): MockCodexInstance {
+// Global mock instances tracker
+const mockInstances: MockCodexInstance[] = [];
+const resetMockInstances = () => {
+  mockInstances.length = 0;
+};
+
+// Default mock thread factory
+
+vi.mock('@openai/codex-sdk', () => {
+  // Mock Codex constructor (defined inside vi.mock to avoid initialization issues)
+  const MockCodexConstructor = vi.fn().mockImplementation(() => {
     const mockThread: MockCodexThread = {
       run: vi.fn().mockResolvedValue({ finalResponse: 'BRANCH: test-branch-name' }),
     };
@@ -27,27 +36,19 @@ const mockCodex = {
       startThread: vi.fn().mockReturnValue(mockThread),
     };
 
-    this.instances.push(instance);
-    return instance;
-  },
-  instances: [] as MockCodexInstance[],
-  reset() {
-    this.instances = [];
-  },
-};
-
-// Stub Codex constructor for now (will be replaced when SDK is installed)
-vi.mock('@openai/codex-sdk', () => {
-  const MockCodexConstructor = vi
-    .fn()
-    .mockImplementation((config: { workingDirectory: string }) => {
-      return mockCodex.create(config.workingDirectory);
-    });
+    mockInstances.push(instance);
+    return instance as any;
+  });
 
   return {
     Codex: MockCodexConstructor,
   };
 });
+
+// Export MockCodexConstructor for test access (get from vi.mocked)
+import { Codex } from '@openai/codex-sdk';
+
+const MockCodexConstructor = vi.mocked(Codex);
 
 describe('parallel-phase orchestrator', () => {
   let phase: Phase;
@@ -57,7 +58,7 @@ describe('parallel-phase orchestrator', () => {
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks();
-    mockCodex.reset();
+    resetMockInstances();
 
     // Sample phase with 3 parallel tasks
     phase = {
@@ -129,10 +130,10 @@ describe('parallel-phase orchestrator', () => {
       );
 
       // Verify: 3 Codex instances created (one per task)
-      expect(mockCodex.instances).toHaveLength(3);
+      expect(mockInstances).toHaveLength(3);
 
       // Verify: thread.run() called 3 times (parallel execution)
-      for (const instance of mockCodex.instances) {
+      for (const instance of mockInstances) {
         expect(instance.startThread).toHaveBeenCalledTimes(1);
         const thread = instance.startThread();
         expect(thread.run).toHaveBeenCalledTimes(1);
@@ -150,7 +151,7 @@ describe('parallel-phase orchestrator', () => {
 
       // Mock: task 2 fails, others succeed
       let callCount = 0;
-      mockCodex.create = (_workingDirectory: string): MockCodexInstance => {
+      MockCodexConstructor.mockImplementation(() => {
         callCount++;
         const shouldFail = callCount === 2;
 
@@ -164,15 +165,15 @@ describe('parallel-phase orchestrator', () => {
           startThread: vi.fn().mockReturnValue(mockThread),
         };
 
-        mockCodex.instances.push(instance);
-        return instance;
-      };
+        mockInstances.push(instance);
+        return instance as any;
+      });
 
       // Execute phase
       await executeParallelPhase(phase, plan, job);
 
       // Verify: all 3 threads spawned (failure doesn't stop others)
-      expect(mockCodex.instances).toHaveLength(3);
+      expect(mockInstances).toHaveLength(3);
 
       // Verify: job tasks include both successes and failure
       expect(job.tasks).toHaveLength(3);
@@ -225,7 +226,7 @@ describe('parallel-phase orchestrator', () => {
       );
 
       // Verify: only 2 threads spawned
-      expect(mockCodex.instances).toHaveLength(2);
+      expect(mockInstances).toHaveLength(2);
     });
 
     it('cleans up worktrees after all threads complete', async () => {
