@@ -10,7 +10,7 @@ import {
   createWorktree,
   findBranch,
   listWorktrees,
-} from './git.js';
+} from '@/utils/git';
 
 describe('Git Utils', () => {
   let testDir: string;
