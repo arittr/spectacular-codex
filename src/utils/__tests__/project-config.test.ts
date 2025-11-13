@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectGitHooks, detectInstallCommand, detectQualityChecks } from './project-config.js';
+import { detectGitHooks, detectInstallCommand, detectQualityChecks } from '@/utils/project-config';
 
 describe('detectInstallCommand', () => {
   it('detects pnpm install from CLAUDE.md', () => {
