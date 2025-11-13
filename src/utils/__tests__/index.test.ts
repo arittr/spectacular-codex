@@ -40,19 +40,19 @@ const mockStatusHandler = vi.fn();
 const mockSpecHandler = vi.fn();
 const mockPlanHandler = vi.fn();
 
-vi.mock('./handlers/execute.js', () => ({
+vi.mock('@/handlers/execute', () => ({
   handleExecute: mockExecuteHandler,
 }));
 
-vi.mock('./handlers/status.js', () => ({
+vi.mock('@/handlers/status', () => ({
   handleStatus: mockStatusHandler,
 }));
 
-vi.mock('./handlers/spec.js', () => ({
+vi.mock('@/handlers/spec', () => ({
   handleSpec: mockSpecHandler,
 }));
 
-vi.mock('./handlers/plan.js', () => ({
+vi.mock('@/handlers/plan', () => ({
   handlePlan: mockPlanHandler,
 }));
 
