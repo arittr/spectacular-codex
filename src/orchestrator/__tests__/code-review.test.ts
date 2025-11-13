@@ -10,8 +10,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Phase, Plan } from '../types.js';
-import { parseVerdict, runCodeReview } from './code-review.js';
+import { parseVerdict, runCodeReview } from '@/orchestrator/code-review';
+import type { Phase, Plan } from '@/types';
 
 // Mock Codex SDK
 const mockThread = {

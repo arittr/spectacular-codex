@@ -59,6 +59,6 @@ prepare-commit-msg:
         # Only run if {2} contains curly braces (unsubstituted = regular commit)
         # Skip if {2} = "message", "template", etc. (user already provided message)
         case "{2}" in
-          *"{"*) npx commitment generate --message-only --agent codex > "{1}" ;;
+          *"{"*) npx commitment generate --message-only --agent claude > "{1}" ;;
         esac
       interactive: true

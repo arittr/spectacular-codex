@@ -16,8 +16,8 @@
  */
 
 import { Codex } from '@openai/codex-sdk';
-import type { ExecutionJob, Phase, Plan } from '../types.js';
-import { checkExistingWork } from '../utils/branch-tracker.js';
+import type { ExecutionJob, Phase, Plan } from '../types';
+import { checkExistingWork } from '../utils/branch-tracker';
 
 /**
  * Extracts branch name from Codex thread output.
