@@ -12,7 +12,7 @@
  * @module prompts/code-reviewer
  */
 
-import type { Phase, Plan } from '../types.js';
+import type { Phase, Plan } from '../types';
 
 /**
  * Generates a prompt for code review with embedded skill instructions.
