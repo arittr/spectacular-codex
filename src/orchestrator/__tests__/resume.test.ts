@@ -15,11 +15,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execa } from 'execa';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExecutionJob, Phase, Plan } from '../types.js';
-import * as branchTracker from '../utils/branch-tracker.js';
-import * as git from '../utils/git.js';
-import { executeParallelPhase } from './parallel-phase.js';
-import { executeSequentialPhase } from './sequential-phase.js';
+import { executeParallelPhase } from '@/orchestrator/parallel-phase';
+import { executeSequentialPhase } from '@/orchestrator/sequential-phase';
+import type { ExecutionJob, Phase, Plan } from '@/types';
+import * as branchTracker from '@/utils/branch-tracker';
+import * as git from '@/utils/git';
 
 // Mock Codex SDK (not yet installed, so we'll stub it)
 interface MockCodexThread {

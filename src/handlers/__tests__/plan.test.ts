@@ -11,8 +11,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { ExecutionJob } from '../types.js';
-import { handlePlan } from './plan.js';
+import { handlePlan } from '@/handlers/plan';
+import type { ExecutionJob } from '@/types';
 
 describe('handlePlan', () => {
   it('should return immediately with run_id and status', async () => {
