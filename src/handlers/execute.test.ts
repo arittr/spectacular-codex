@@ -153,7 +153,7 @@ Feature: slow
       // Mock orchestrator to be slow
       const { executeParallelPhase } = await import('../orchestrator/parallel-phase.js');
       vi.mocked(executeParallelPhase).mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve({ success: true }), 10000))
+        () => new Promise((resolve) => setTimeout(() => resolve(), 10000))
       );
 
       const startTime = Date.now();
@@ -236,7 +236,7 @@ Feature: ok
 
       // Reset mocks to ensure they resolve quickly
       const { executeParallelPhase } = await import('../orchestrator/parallel-phase.js');
-      vi.mocked(executeParallelPhase).mockResolvedValue({ success: true });
+      vi.mocked(executeParallelPhase).mockResolvedValue(undefined);
 
       await handleExecute({ plan_path: planPath }, jobs);
 
@@ -360,7 +360,7 @@ Feature: retry
 
       // Reset mocks to ensure they resolve quickly
       const { executeParallelPhase } = await import('../orchestrator/parallel-phase.js');
-      vi.mocked(executeParallelPhase).mockResolvedValue({ success: true });
+      vi.mocked(executeParallelPhase).mockResolvedValue(undefined);
 
       // First execution
       await handleExecute({ plan_path: planPath }, jobs);
