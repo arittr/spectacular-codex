@@ -280,3 +280,4 @@ Testing deferred to separate implementation run (per user preference: implement 
 - Codex SDK: https://github.com/openai/codex/tree/main/sdk/typescript
 - MCP Protocol: https://modelcontextprotocol.io/
 - Git-spice: https://github.com/abhinav/git-spice
+- Superpowers Skills: https://github.com/obra/superpowers/tree/main/skills (reference for prompt templates)
