@@ -2,10 +2,10 @@
   "author": "Drew Ritter <drew@ritter.dev>",
   "bin": "dist/index.js",
   "dependencies": {
-    "@clack/prompts": "^0.9.1",
-    "ts-pattern": "^5.9.0"
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "execa": "^9.5.2"
   },
-  "description": "Boilerplate for building CLI packages in TypeScript",
+  "description": "MCP server for Spectacular parallel orchestration in Codex CLI",
   "devDependencies": {
     "@arittr/commitment": "^0.17.0",
     "@biomejs/biome": "2.3.5",
@@ -23,7 +23,7 @@
     "dist"
   ],
   "license": "MIT",
-  "name": "ts-fast-project",
+  "name": "spectacular-codex",
   "scripts": {
     "build": "tsup",
     "check-types": "tsc --noEmit",
