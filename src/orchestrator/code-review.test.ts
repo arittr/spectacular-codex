@@ -22,7 +22,7 @@ const mockCodex = {
   startThread: vi.fn().mockReturnValue(mockThread),
 };
 
-vi.mock('@openai/codex', () => ({
+vi.mock('@openai/codex-sdk', () => ({
   Codex: vi.fn().mockImplementation(() => mockCodex),
 }));
 
@@ -92,7 +92,7 @@ describe('runCodeReview', () => {
   });
 
   it('returns on first approval', async () => {
-    mockThread.run.mockResolvedValueOnce('VERDICT: APPROVED\nAll good!');
+    mockThread.run.mockResolvedValueOnce({ finalResponse: 'VERDICT: APPROVED\nAll good!' });
 
     await runCodeReview(mockPhase, mockPlan);
 
@@ -109,9 +109,9 @@ describe('runCodeReview', () => {
 
   it('runs fix loop on rejection then approval', async () => {
     mockThread.run
-      .mockResolvedValueOnce('VERDICT: REJECTED - issue found\nDetails...')
-      .mockResolvedValueOnce('Fixed the issue') // Fixer
-      .mockResolvedValueOnce('VERDICT: APPROVED\nLooks good now!');
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: REJECTED - issue found\nDetails...' })
+      .mockResolvedValueOnce({ finalResponse: 'Fixed the issue' }) // Fixer
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: APPROVED\nLooks good now!' });
 
     await runCodeReview(mockPhase, mockPlan);
 
@@ -134,11 +134,11 @@ describe('runCodeReview', () => {
 
   it('handles multiple rejection-fix cycles', async () => {
     mockThread.run
-      .mockResolvedValueOnce('VERDICT: REJECTED - issue 1')
-      .mockResolvedValueOnce('Fixed issue 1') // Fix 1
-      .mockResolvedValueOnce('VERDICT: REJECTED - issue 2')
-      .mockResolvedValueOnce('Fixed issue 2') // Fix 2
-      .mockResolvedValueOnce('VERDICT: APPROVED');
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: REJECTED - issue 1' })
+      .mockResolvedValueOnce({ finalResponse: 'Fixed issue 1' }) // Fix 1
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: REJECTED - issue 2' })
+      .mockResolvedValueOnce({ finalResponse: 'Fixed issue 2' }) // Fix 2
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: APPROVED' });
 
     await runCodeReview(mockPhase, mockPlan);
 
@@ -151,13 +151,13 @@ describe('runCodeReview', () => {
 
   it('throws after max rejections (3)', async () => {
     mockThread.run
-      .mockResolvedValueOnce('VERDICT: REJECTED - issue 1')
-      .mockResolvedValueOnce('Fixed issue 1') // Fix 1
-      .mockResolvedValueOnce('VERDICT: REJECTED - issue 2')
-      .mockResolvedValueOnce('Fixed issue 2') // Fix 2
-      .mockResolvedValueOnce('VERDICT: REJECTED - issue 3')
-      .mockResolvedValueOnce('Fixed issue 3') // Fix 3
-      .mockResolvedValueOnce('VERDICT: REJECTED - issue 4'); // 4th rejection
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: REJECTED - issue 1' })
+      .mockResolvedValueOnce({ finalResponse: 'Fixed issue 1' }) // Fix 1
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: REJECTED - issue 2' })
+      .mockResolvedValueOnce({ finalResponse: 'Fixed issue 2' }) // Fix 2
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: REJECTED - issue 3' })
+      .mockResolvedValueOnce({ finalResponse: 'Fixed issue 3' }) // Fix 3
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: REJECTED - issue 4' }); // 4th rejection
 
     await expect(runCodeReview(mockPhase, mockPlan)).rejects.toThrow(
       'Code review failed after 3 rejections'
@@ -172,9 +172,9 @@ describe('runCodeReview', () => {
 
   it('uses same thread for entire loop (preserves context)', async () => {
     mockThread.run
-      .mockResolvedValueOnce('VERDICT: REJECTED - issue')
-      .mockResolvedValueOnce('Fixed')
-      .mockResolvedValueOnce('VERDICT: APPROVED');
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: REJECTED - issue' })
+      .mockResolvedValueOnce({ finalResponse: 'Fixed' })
+      .mockResolvedValueOnce({ finalResponse: 'VERDICT: APPROVED' });
 
     await runCodeReview(mockPhase, mockPlan);
 
@@ -186,7 +186,7 @@ describe('runCodeReview', () => {
   });
 
   it('throws error when review result cannot be parsed', async () => {
-    mockThread.run.mockResolvedValueOnce('No verdict in this response');
+    mockThread.run.mockResolvedValueOnce({ finalResponse: 'No verdict in this response' });
 
     await expect(runCodeReview(mockPhase, mockPlan)).rejects.toThrow(
       'Could not parse verdict from review result'
@@ -194,7 +194,7 @@ describe('runCodeReview', () => {
   });
 
   it('uses correct working directory for main worktree', async () => {
-    mockThread.run.mockResolvedValueOnce('VERDICT: APPROVED');
+    mockThread.run.mockResolvedValueOnce({ finalResponse: 'VERDICT: APPROVED' });
 
     await runCodeReview(mockPhase, mockPlan);
 
