@@ -14,29 +14,8 @@
  * @module orchestrator/code-review
  */
 
+import { Codex } from '@openai/codex-sdk';
 import type { Phase, Plan } from '../types.js';
-
-// Mock Codex SDK interface (real implementation will replace this)
-interface CodexThread {
-  run(prompt: string): Promise<string>;
-}
-
-interface CodexInstance {
-  startThread(): CodexThread;
-}
-
-interface CodexConstructor {
-  new (options: { workingDirectory: string }): CodexInstance;
-}
-
-// Dynamic import of Codex SDK
-// In tests, this will be mocked via vi.mock()
-// In production, this will be the real @openai/codex package
-async function getCodex(): Promise<CodexConstructor> {
-  // @ts-expect-error - @openai/codex package not yet installed
-  const CodexModule = await import('@openai/codex');
-  return CodexModule.Codex;
-}
 
 /**
  * Maximum number of rejections before escalation.
@@ -93,15 +72,13 @@ export function parseVerdict(reviewResult: string): ReviewVerdict {
  */
 export async function runCodeReview(phase: Phase, plan: Plan): Promise<void> {
   // Get Codex constructor (mocked in tests, real in production)
-  const Codex = await getCodex();
-
   // Spawn single Codex thread in main worktree
   // This thread will be reused for all review/fix iterations
-  const codex = new Codex({
+  const codex = new Codex();
+
+  const thread = codex.startThread({
     workingDirectory: `.worktrees/${plan.runId}-main`,
   });
-
-  const thread = codex.startThread();
 
   let rejectionCount = 0;
 
@@ -109,10 +86,10 @@ export async function runCodeReview(phase: Phase, plan: Plan): Promise<void> {
   while (rejectionCount <= MAX_REJECTIONS) {
     // Generate and run code review
     const reviewPrompt = generateReviewPrompt(phase, plan);
-    const reviewResult = await thread.run(reviewPrompt);
+    const reviewTurn = await thread.run(reviewPrompt);
 
     // Parse verdict from review output
-    const verdict = parseVerdict(reviewResult);
+    const verdict = parseVerdict(reviewTurn.finalResponse);
 
     if (verdict === 'approved') {
       // Success! Code is approved
@@ -128,7 +105,7 @@ export async function runCodeReview(phase: Phase, plan: Plan): Promise<void> {
 
     // Generate and run fixer prompt
     // SAME thread preserves conversation context
-    const fixerPrompt = generateFixerPrompt(reviewResult, plan);
+    const fixerPrompt = generateFixerPrompt(reviewTurn.finalResponse, plan);
     await thread.run(fixerPrompt);
 
     // Loop continues to re-review
