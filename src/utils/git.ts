@@ -54,8 +54,8 @@ export async function findBranch(pattern: string, cwd?: string): Promise<string 
 
     const branches = result.stdout
       .split('\n')
-      .map((line) => line.trim().replace(/^\*\s+/, '')) // Remove leading * and whitespace
-      .filter((line) => line.length > 0);
+      .map((line: string) => line.trim().replace(/^\*\s+/, '')) // Remove leading * and whitespace
+      .filter((line: string) => line.length > 0);
 
     return branches[0]; // Return first match
   } catch (_error) {

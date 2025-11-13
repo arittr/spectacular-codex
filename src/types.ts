@@ -42,6 +42,7 @@ export interface Task {
 
   /** Task dependencies (task IDs this task depends on) */
   dependencies?: string[];
+
   /** List of files this task modifies/creates */
   files: string[];
 
