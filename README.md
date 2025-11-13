@@ -1,5 +1,8 @@
 # spectacular-codex
 
+>[!WARNING]
+>This isn't working yet - but will be soon!
+
 MCP server that brings Spectacular's parallel orchestration methodology to Codex CLI.
 
 ## Overview
