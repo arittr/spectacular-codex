@@ -16,7 +16,7 @@ import type { ExecutionJob } from './types.js';
 // Mock the MCP SDK
 const mockConnect = vi.fn();
 const mockSetRequestHandler = vi.fn();
-const mockListToolsHandler = vi.fn();
+const _mockListToolsHandler = vi.fn();
 
 vi.mock('@modelcontextprotocol/sdk/server/index.js', () => ({
   Server: class MockServer {
@@ -164,9 +164,12 @@ describe('MCP Server Core', () => {
       },
     });
 
-    expect(mockSpecHandler).toHaveBeenCalledWith({
-      description: 'Test feature',
-    });
+    expect(mockSpecHandler).toHaveBeenCalledWith(
+      {
+        description: 'Test feature',
+      },
+      expect.any(Map) // jobs tracker
+    );
 
     expect(result).toEqual({
       feature_slug: 'my-feature',
@@ -193,9 +196,12 @@ describe('MCP Server Core', () => {
       },
     });
 
-    expect(mockPlanHandler).toHaveBeenCalledWith({
-      spec_path: 'specs/my-feature/spec.md',
-    });
+    expect(mockPlanHandler).toHaveBeenCalledWith(
+      {
+        spec_path: 'specs/my-feature/spec.md',
+      },
+      expect.any(Map) // jobs tracker
+    );
 
     expect(result).toEqual({
       run_id: 'abc123',
@@ -248,7 +254,7 @@ describe('MCP Server Core', () => {
   it('shares job state across handlers', async () => {
     // Setup: Execute creates a job
     mockExecuteHandler.mockImplementation(
-      async (args: unknown, jobs: Map<string, ExecutionJob>) => {
+      async (_args: unknown, jobs: Map<string, ExecutionJob>) => {
         jobs.set('abc123', {
           phase: 1,
           runId: 'abc123',
@@ -262,16 +268,18 @@ describe('MCP Server Core', () => {
     );
 
     // Setup: Status retrieves the job
-    mockStatusHandler.mockImplementation(async (args: unknown, jobs: Map<string, ExecutionJob>) => {
-      const job = jobs.get('abc123');
-      if (!job) throw new Error('Job not found');
-      return {
-        phase: job.phase,
-        run_id: job.runId,
-        status: job.status,
-        tasks: job.tasks,
-      };
-    });
+    mockStatusHandler.mockImplementation(
+      async (_args: unknown, jobs: Map<string, ExecutionJob>) => {
+        const job = jobs.get('abc123');
+        if (!job) throw new Error('Job not found');
+        return {
+          phase: job.phase,
+          run_id: job.runId,
+          status: job.status,
+          tasks: job.tasks,
+        };
+      }
+    );
 
     await import('./index.js');
 

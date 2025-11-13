@@ -43,7 +43,6 @@ vi.mock('@openai/codex', () => {
     });
 
   return {
-    // biome-ignore lint/style/useNamingConvention: Codex is a proper class name (PascalCase required)
     Codex: MockCodexConstructor,
   };
 });
@@ -101,6 +100,7 @@ describe('sequential-phase orchestrator', () => {
       startedAt: new Date(),
       status: 'running',
       tasks: [],
+      totalPhases: 5,
     };
   });
 
