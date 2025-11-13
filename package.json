@@ -2,7 +2,8 @@
   "author": "Drew Ritter <drew@ritter.dev>",
   "bin": "dist/index.js",
   "dependencies": {
-    "@clack/prompts": "^0.9.1"
+    "@clack/prompts": "^0.9.1",
+    "ts-pattern": "^5.9.0"
   },
   "description": "Boilerplate for building CLI packages in TypeScript",
   "devDependencies": {
