@@ -7,6 +7,7 @@
  */
 
 import type { ExecutionJob } from '../types.js';
+import { validateRunId } from '../utils/validation.js';
 
 /**
  * Arguments for the status handler.
@@ -62,6 +63,9 @@ export async function handleStatus(
 
   const runId = args.run_id;
 
+  // Validate run_id format (must be 6-char hex)
+  validateRunId(runId);
+
   // Retrieve job
   const job = jobs.get(runId);
   if (!job) {
@@ -70,13 +74,13 @@ export async function handleStatus(
 
   // Format response
   const response: StatusResponse = {
+    phase: job.phase,
     // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
     run_id: job.runId,
-    status: job.status,
-    phase: job.phase,
-    tasks: job.tasks,
     // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
     started_at: job.startedAt.toISOString(),
+    status: job.status,
+    tasks: job.tasks,
   };
 
   // Add optional fields only if they exist (for exactOptionalPropertyTypes)
