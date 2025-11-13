@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { generatePlanPrompt } from './plan-generator.js';
+import { generatePlanPrompt } from '@/prompts/plan-generator';
 
 describe('generatePlanPrompt', () => {
   const specPath = 'specs/abc123-feature-name/spec.md';
