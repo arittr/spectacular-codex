@@ -7,7 +7,7 @@ import { GitSpiceBackend } from '../git-spice';
 import { getStackingBackend } from '../index';
 
 // Mock git-spice backend
-vi.mock('../git-spice.js', () => ({
+vi.mock('../git-spice', () => ({
   GitSpiceBackend: vi.fn(),
 }));
 
