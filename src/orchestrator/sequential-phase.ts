@@ -1,5 +1,5 @@
 /**
- * Parallel phase orchestration (stub for Phase 2).
+ * Sequential phase orchestration (stub for later phases).
  *
  * This is a stub implementation that will be completed in later phases.
  * For now, it just resolves successfully to allow testing.
@@ -8,14 +8,14 @@
 import type { ExecutionJob, Phase, Plan } from '../types.js';
 
 /**
- * Executes a parallel phase (stub implementation).
+ * Executes a sequential phase (stub implementation).
  *
  * @param phase - Phase to execute
  * @param plan - Full implementation plan
  * @param job - Job tracker
  * @returns Promise resolving when phase completes
  */
-export async function executeParallelPhase(
+export async function executeSequentialPhase(
   _phase: Phase,
   _plan: Plan,
   _job: ExecutionJob
