@@ -46,6 +46,7 @@ server.setRequestHandler('tools/list', async () => {
           'Execute implementation plan with automatic parallel/sequential orchestration. Returns immediately with run_id for status polling.',
         inputSchema: {
           properties: {
+            // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
             plan_path: {
               description: 'Path to plan.md file (e.g., specs/abc123/plan.md)',
               type: 'string',
@@ -61,6 +62,7 @@ server.setRequestHandler('tools/list', async () => {
           'Get execution status for a running or completed job. Shows current phase, task statuses, and completion timestamps.',
         inputSchema: {
           properties: {
+            // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
             run_id: {
               description: 'Run identifier returned by spectacular_execute',
               type: 'string',
@@ -91,6 +93,7 @@ server.setRequestHandler('tools/list', async () => {
           'Generate implementation plan from specification. Creates plan.md with sequential/parallel phase decomposition.',
         inputSchema: {
           properties: {
+            // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
             spec_path: {
               description: 'Path to spec.md file (e.g., specs/my-feature/spec.md)',
               type: 'string',
@@ -108,8 +111,8 @@ server.setRequestHandler('tools/list', async () => {
 // Register tools/call handler
 // @ts-expect-error - MCP SDK types are complex, using runtime approach
 server.setRequestHandler('tools/call', async (request) => {
-  // biome-ignore lint/suspicious/noExplicitAny: MCP SDK types use any
   // @ts-expect-error - request params available at runtime
+  // biome-ignore lint/suspicious/noExplicitAny: MCP SDK request params use any
   const { name, arguments: args } = request.params as { name: string; arguments: any };
 
   try {
@@ -119,9 +122,9 @@ server.setRequestHandler('tools/call', async (request) => {
       case 'spectacular_status':
         return await handleStatus(args, jobs);
       case 'spectacular_spec':
-        return await handleSpec(args);
+        return await handleSpec(args, jobs);
       case 'spectacular_plan':
-        return await handlePlan(args);
+        return await handlePlan(args, jobs);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -142,6 +145,7 @@ async function main() {
 
 // Only run main() if executed directly (not during tests)
 if (import.meta.url === `file://${process.argv[1]}`) {
+  // biome-ignore lint/suspicious/noConsole: Entry point needs error logging
   main().catch(console.error);
 }
 
