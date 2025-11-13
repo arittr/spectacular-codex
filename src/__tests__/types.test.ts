@@ -64,6 +64,7 @@ describe('TypeScript Core Types', () => {
     it('accepts valid task definition', () => {
       const task: Task = {
         acceptanceCriteria: ['Schema validates', 'Migrations run successfully'],
+        description: 'Create database schema and initial migration',
         files: ['src/database/schema.sql', 'src/database/migrations/001.sql'],
         id: '1-1',
         name: 'Database Schema',
@@ -77,6 +78,7 @@ describe('TypeScript Core Types', () => {
       const task: Task = {
         acceptanceCriteria: ['Tests pass'],
         branch: 'abc123-task-2-3-api-handler',
+        description: 'Implement API request handler',
         files: ['src/api/handler.ts'],
         id: '2-3',
         name: 'API Handler',
@@ -95,6 +97,7 @@ describe('TypeScript Core Types', () => {
         tasks: [
           {
             acceptanceCriteria: ['Types compile'],
+            description: 'Define core TypeScript types',
             files: ['src/types.ts'],
             id: '1-1',
             name: 'Core Types',
@@ -114,6 +117,7 @@ describe('TypeScript Core Types', () => {
         tasks: [
           {
             acceptanceCriteria: ['Setup completes'],
+            description: 'Initialize project setup',
             files: ['src/setup.ts'],
             id: '2-1',
             name: 'Setup',
@@ -143,6 +147,7 @@ describe('TypeScript Core Types', () => {
             tasks: [
               {
                 acceptanceCriteria: ['Types compile'],
+                description: 'Define core types',
                 files: ['src/types.ts'],
                 id: '1-1',
                 name: 'Types',
