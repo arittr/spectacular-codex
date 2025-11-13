@@ -185,6 +185,9 @@
           "security": {
             "noSecrets": "off"
           },
+          "style": {
+            "useNamingConvention": "off"
+          },
           "suspicious": {
             "noConsole": "off",
             "noExplicitAny": "off",
