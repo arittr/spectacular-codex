@@ -59,8 +59,8 @@ vi.mock('@openai/codex-sdk', () => {
 });
 
 // We'll use real git operations but mock Codex SDK
-vi.mock('../utils/git.js', async () => {
-  const actual = await vi.importActual<typeof git>('../utils/git.js');
+vi.mock('@/utils/git', async () => {
+  const actual = await vi.importActual<typeof git>('@/utils/git');
   return {
     ...actual,
     cleanupWorktree: vi.fn().mockResolvedValue(undefined),
