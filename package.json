@@ -1,0 +1,38 @@
+{
+  "author": "Drew Ritter <drew@ritter.dev>",
+  "bin": "dist/index.js",
+  "dependencies": {
+    "@clack/prompts": "^0.9.1"
+  },
+  "description": "Boilerplate for building CLI packages in TypeScript",
+  "devDependencies": {
+    "@arittr/commitment": "^0.17.0",
+    "@biomejs/biome": "2.3.5",
+    "@types/node": "^22.12.0",
+    "lefthook": "^2.0.3",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.2"
+  },
+  "engines": {
+    "node": "^20.0.0 || >=22.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "name": "ts-fast-project",
+  "scripts": {
+    "build": "tsup",
+    "check-types": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "dev": "tsup --watch",
+    "lint": "pnpm check-types && pnpm biome check --write",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "version": "0.0.0"
+}

@@ -1,0 +1,64 @@
+# EXAMPLE USAGE:
+#
+#   Refer for explanation to following link:
+#   https://lefthook.dev/configuration/
+#
+# pre-push:
+#   jobs:
+#     - name: packages audit
+#       tags:
+#         - frontend
+#         - security
+#       run: yarn audit
+#
+#     - name: gems audit
+#       tags:
+#         - backend
+#         - security
+#       run: bundle audit
+#
+# pre-commit:
+#   parallel: true
+#   jobs:
+#     - run: yarn eslint {staged_files}
+#       glob: "*.{js,ts,jsx,tsx}"
+#
+#     - name: rubocop
+#       glob: "*.rb"
+#       exclude:
+#         - config/application.rb
+#         - config/routes.rb
+#       run: bundle exec rubocop --force-exclusion {all_files}
+#
+#     - name: govet
+#       files: git ls-files -m
+#       glob: "*.go"
+#       run: go vet {files}
+#
+#     - script: "hello.js"
+#       runner: node
+#
+#     - script: "hello.go"
+#       runner: go run
+pre-commit:
+  parallel: false
+  jobs:
+    - run: pnpm lint
+      staged_fixed: true
+prepare-commit-msg:
+  skip:
+    - merge
+    - rebase
+  commands:
+    commitment:
+      # Run for regular commits only
+      # {1} is the commit message file path
+      # {2} is commit source: "message" (from -m), "template", "merge", "squash", or "commit"
+      # When no source (regular git commit), lefthook doesn't substitute {2}
+      run: |
+        # Only run if {2} contains curly braces (unsubstituted = regular commit)
+        # Skip if {2} = "message", "template", etc. (user already provided message)
+        case "{2}" in
+          *"{"*) npx commitment generate --message-only > "{1}" ;;
+        esac
+      interactive: true

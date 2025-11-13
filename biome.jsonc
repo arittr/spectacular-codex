@@ -1,0 +1,202 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.5/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on",
+        "useSortedAttributes": "on",
+        "useSortedKeys": "on"
+      }
+    }
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      ".vscode/**",
+      "!node_modules",
+      "!dist",
+      "!build",
+      "!.git",
+      "!coverage",
+      "!.worktrees"
+    ]
+  },
+  "formatter": {
+    "attributePosition": "auto",
+    "enabled": true,
+    "formatWithErrors": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "arrowParentheses": "always",
+      "bracketSameLine": false,
+      "bracketSpacing": true,
+      "quoteProperties": "asNeeded",
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "es5"
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2,
+      "lineWidth": 100
+    },
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": false
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "error",
+        "noForEach": "error",
+        "noUselessStringConcat": "error",
+        "noUselessUndefinedInitialization": "error",
+        "recommended": true,
+        "useDateNow": "error"
+      },
+      "correctness": {
+        "noNodejsModules": "off",
+        "noUndeclaredDependencies": "off",
+        "noUnusedImports": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUnusedVariables": "error",
+        "recommended": true,
+        "useImportExtensions": "off"
+      },
+      "nursery": {
+        "useExhaustiveSwitchCases": "error"
+      },
+      "security": {
+        "noSecrets": {
+          "level": "info",
+          "options": {
+            "entropyThreshold": 60
+          }
+        },
+        "recommended": true
+      },
+      "style": {
+        "noDefaultExport": "error",
+        "noInferrableTypes": "off",
+        "noNonNullAssertion": "error",
+        "noParameterProperties": "off",
+        "recommended": true,
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": {
+            "filenameCases": ["kebab-case"],
+            "requireAscii": true,
+            "strictCase": false
+          }
+        },
+        "useImportType": "error",
+        "useNamingConvention": {
+          "level": "error",
+          "options": {
+            "conventions": [
+              {
+                "formats": ["camelCase", "PascalCase"],
+                "selector": { "kind": "function" }
+              },
+              {
+                "formats": ["camelCase", "CONSTANT_CASE", "PascalCase"],
+                "selector": { "kind": "variable" }
+              },
+              {
+                "formats": ["PascalCase"],
+                "selector": { "kind": "typeLike" }
+              }
+            ],
+            "strictCase": false
+          }
+        }
+      },
+      "suspicious": {
+        "noConsole": {
+          "level": "error",
+          "options": {
+            "allow": []
+          }
+        },
+        "noExplicitAny": "error",
+        "noSkippedTests": "error",
+        "recommended": true
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["build.ts", "*.config.ts", "*.config.js", "*.config.mjs", "eslint.config.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          },
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/cli.ts", "src/cli/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/utils/logger.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/**/__tests__/**",
+        "src/**/__mocks__/**",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "src/eval/**"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          },
+          "security": {
+            "noSecrets": "off"
+          },
+          "suspicious": {
+            "noConsole": "off",
+            "noExplicitAny": "off",
+            "noSkippedTests": "off"
+          }
+        }
+      }
+    }
+  ],
+  "vcs": {
+    "clientKind": "git",
+    "enabled": true,
+    "useIgnoreFile": true
+  }
+}
