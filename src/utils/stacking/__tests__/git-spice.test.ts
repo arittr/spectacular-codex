@@ -3,7 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GitSpiceBackend } from './git-spice.js';
+import { GitSpiceBackend } from '@/utils/stacking/git-spice';
 
 // Mock execa
 vi.mock('execa', () => ({

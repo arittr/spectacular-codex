@@ -11,8 +11,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { Plan, Task } from '../types.js';
-import { generateTaskPrompt } from './task-executor.js';
+import { generateTaskPrompt } from '@/prompts/task-executor';
+import type { Plan, Task } from '@/types';
 
 describe('generateTaskPrompt', () => {
   const mockTask: Task = {
