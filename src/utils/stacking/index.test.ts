@@ -8,7 +8,6 @@ import { getStackingBackend } from './index.js';
 
 // Mock git-spice backend
 vi.mock('./git-spice.js', () => ({
-  // biome-ignore lint/style/useNamingConvention: Mocking class export
   GitSpiceBackend: vi.fn(),
 }));
 

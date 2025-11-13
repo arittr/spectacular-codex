@@ -21,21 +21,21 @@ describe('generateReviewPrompt', () => {
     strategy: 'parallel',
     tasks: [
       {
-        id: '3-1',
-        name: 'Review & Fixer Prompt Templates',
-        description: 'Generate prompts for code review and fixer',
-        files: ['src/prompts/code-reviewer.ts', 'src/prompts/fixer.ts'],
         acceptanceCriteria: [
           'Review prompt includes binary verdict format',
           'Fixer prompt includes rejection reasons',
         ],
+        description: 'Generate prompts for code review and fixer',
+        files: ['src/prompts/code-reviewer.ts', 'src/prompts/fixer.ts'],
+        id: '3-1',
+        name: 'Review & Fixer Prompt Templates',
       },
       {
-        id: '3-2',
-        name: 'Code Review Orchestrator',
+        acceptanceCriteria: ['Code review loop handles rejections'],
         description: 'Implement code review orchestration',
         files: ['src/orchestrator/code-review.ts'],
-        acceptanceCriteria: ['Code review loop handles rejections'],
+        id: '3-2',
+        name: 'Code Review Orchestrator',
       },
     ],
   };
