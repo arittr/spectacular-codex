@@ -81,6 +81,7 @@ export async function handleSpec(
     startedAt: new Date(),
     status: 'running',
     tasks: [],
+    totalPhases: 0, // Spec generation doesn't have phases
   };
 
   jobs.set(runId, job);
