@@ -492,26 +492,39 @@ async function createWorktree(path: string, ref: string) {
 
 ## Import Patterns
 
-**Rule:** Always use .js extensions for local imports (ESM requirement).
+**Rule:** ALWAYS use @ alias for internal imports, NEVER use .js/.ts extensions or relative paths (../).
 
 **Pattern:**
 ```typescript
-// ✅ CORRECT: .js extension (ESM)
-import { generateTaskPrompt } from './prompts/task-executor.js';
-import { createWorktrees } from './utils/git.js';
-import type { Task, Plan } from './types.js';
+// ✅ CORRECT: @ alias, no extensions
+import { generateTaskPrompt } from '@/prompts/task-executor';
+import { createWorktrees } from '@/utils/git';
+import type { Task, Plan } from '@/types';
 
-// ❌ WRONG: Missing .js extension
-import { generateTaskPrompt } from './prompts/task-executor'; // BREAKS!
-import { createWorktrees } from './utils/git'; // BREAKS!
+// ❌ WRONG: Relative paths or extensions
+import { generateTaskPrompt } from './prompts/task-executor'; // NO!
+import { createWorktrees } from '../utils/git'; // NO!
+import type { Task, Plan } from './types.js'; // NO!
 ```
 
-**Why:** Node.js ESM requires explicit .js extensions. TypeScript compiles .ts → .js.
+**Why:**
+- @ alias provides consistent, absolute imports across the codebase
+- No extensions simplifies refactoring and maintains consistency
+- TypeScript path mapping (`@/*` → `./src/*`) resolves correctly
+- Relative paths (../) break when files move
+
+**External Package Imports:**
+External SDK imports MAY require .js extensions for ESM compatibility:
+```typescript
+// ✅ CORRECT: External packages with .js for ESM
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+```
 
 **Order:**
-1. External packages (e.g., `@openai/codex`)
-2. Internal modules (e.g., `./orchestrator/parallel-phase.js`)
-3. Types (e.g., `import type { ... }`)
+1. External packages (e.g., `@openai/codex-sdk`)
+2. Internal modules via @ alias (e.g., `@/orchestrator/parallel-phase`)
+3. Type imports (e.g., `import type { ... }`)
 
 ## Rationalization Table
 

@@ -353,7 +353,7 @@ export async function createWorktree(path: string, branch: string): Promise<void
 ```typescript
 // tests/integration/orchestrator/parallel-phase.test.ts
 import { vi } from 'vitest';
-import { executeParallelPhase } from '../../../src/orchestrator/parallel-phase.js';
+import { executeParallelPhase } from '@/orchestrator/parallel-phase';
 
 const mockThread = {
   run: vi.fn().mockResolvedValue({ output: 'abc123-task-1-2-schema' })

@@ -10,13 +10,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleExecute } from '@/handlers/execute';
 import type { ExecutionJob } from '@/types';
 
-// Mock the orchestrator module (will be implemented in later phases)
+// Mock the orchestrator modules
 vi.mock('@/orchestrator/parallel-phase', () => ({
   executeParallelPhase: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 vi.mock('@/orchestrator/sequential-phase', () => ({
   executeSequentialPhase: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+vi.mock('@/orchestrator/code-review', () => ({
+  runCodeReview: vi.fn().mockResolvedValue(undefined), // Code review passes
 }));
 
 describe('handleExecute', () => {

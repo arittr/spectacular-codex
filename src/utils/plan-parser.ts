@@ -1,4 +1,4 @@
-import type { Phase, Plan, Task } from '../types';
+import type { Phase, Plan, Task } from '@/types';
 
 /**
  * Extracts the runId from a plan.md file path.

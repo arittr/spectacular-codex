@@ -1,6 +1,6 @@
 import { execa } from 'execa';
-import type { CompletedTask, ExistingWork, Phase, Task } from '../types';
-import { findBranch } from './git';
+import type { CompletedTask, ExistingWork, Phase, Task } from '@/types';
+import { findBranch } from '@/utils/git';
 
 /**
  * Checks if a branch has commits beyond its base.

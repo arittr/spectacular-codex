@@ -9,14 +9,13 @@
 
 import { randomBytes } from 'node:crypto';
 import { Codex } from '@openai/codex-sdk';
-import { generateSpecPrompt } from '../prompts/spec-generator';
-import type { ExecutionJob } from '../types';
+import { generateSpecPrompt } from '@/prompts/spec-generator';
+import type { ExecutionJob } from '@/types';
 
 /**
  * Arguments for the spec handler.
  */
 export interface SpecArgs {
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   feature_request: unknown;
 }
 
@@ -24,7 +23,6 @@ export interface SpecArgs {
  * Response from the spec handler.
  */
 export interface SpecResponse {
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   run_id: string;
   status: 'started';
 }
@@ -96,7 +94,6 @@ export async function handleSpec(
 
   // Return immediately
   return {
-    // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
     run_id: runId,
     status: 'started',
   };

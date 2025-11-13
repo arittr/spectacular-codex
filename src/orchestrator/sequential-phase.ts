@@ -15,9 +15,12 @@
  * @module orchestrator/sequential-phase
  */
 
+import { promises as fs } from 'node:fs';
 import { Codex } from '@openai/codex-sdk';
-import type { ExecutionJob, Phase, Plan } from '../types';
-import { checkExistingWork } from '../utils/branch-tracker';
+import { generateTaskPrompt } from '@/prompts/task-executor';
+import type { ExecutionJob, Phase, Plan } from '@/types';
+import { checkExistingWork } from '@/utils/branch-tracker';
+import { detectQualityChecks } from '@/utils/project-config';
 
 /**
  * Extracts branch name from Codex thread output.
@@ -33,36 +36,46 @@ function extractBranchName(output: string): string | undefined {
 }
 
 /**
- * Generates a basic task execution prompt.
+ * Detects quality checks from project config files.
  *
- * NOTE: This is a stub implementation. The real prompt generation should be
- * delegated to src/prompts/task-executor.ts (Task 2-1).
+ * Tries AGENTS.md first (Codex convention), then CLAUDE.md as fallback.
  *
- * @param taskId - Task identifier
- * @param plan - Execution plan
- * @returns Prompt string
+ * @returns Quality checks object with test, typeCheck, and lint commands
  */
-function generateTaskPrompt(taskId: string, plan: Plan): string {
-  return `
-You are implementing Task ${taskId} for run ${plan.runId}.
+async function detectQualityChecksFromConfig(): Promise<{
+  test: string;
+  typeCheck: string;
+  lint: string;
+}> {
+  const defaults = { lint: 'pnpm lint', test: 'pnpm test', typeCheck: 'pnpm check-types' };
 
-## Your Process
+  try {
+    // Try reading AGENTS.md first (Codex convention), then CLAUDE.md fallback
+    let configContent: string | undefined;
+    try {
+      configContent = await fs.readFile('AGENTS.md', 'utf-8');
+    } catch {
+      try {
+        configContent = await fs.readFile('CLAUDE.md', 'utf-8');
+      } catch {
+        // Use defaults if neither file exists
+        return defaults;
+      }
+    }
 
-### 1. Navigate to Worktree
-cd .worktrees/${plan.runId}-main
+    if (configContent) {
+      const detected = detectQualityChecks(configContent);
+      return {
+        lint: detected.lintCommand || defaults.lint,
+        test: detected.testCommand || defaults.test,
+        typeCheck: detected.typeCheckCommand || defaults.typeCheck,
+      };
+    }
+  } catch (_error) {
+    // If detection fails, use defaults
+  }
 
-### 2. Implement Task (TDD)
-- Write test first
-- Watch it fail
-- Write minimal code to pass
-- Watch it pass
-
-### 3. Create Branch
-gs branch create ${plan.runId}-task-${taskId}-{name} -m "Task ${taskId}"
-
-### 4. Report Completion
-Output: BRANCH: {branch-name}
-`;
+  return defaults;
 }
 
 /**
@@ -99,9 +112,10 @@ function updateJobTaskStatus(
  *
  * This function implements the sequential execution pattern:
  * 1. Check existing work (resume logic)
- * 2. Execute each pending task sequentially in main worktree
- * 3. Natural git-spice stacking (each branch builds on previous)
- * 4. Fail fast on first error
+ * 2. Detect quality checks from AGENTS.md/CLAUDE.md (Codex convention)
+ * 3. Execute each pending task sequentially in main worktree with full task prompts
+ * 4. Natural git-spice stacking (each branch builds on previous)
+ * 5. Fail fast on first error
  *
  * Unlike parallel phases, sequential phases:
  * - Use single main worktree (not isolated worktrees per task)
@@ -140,7 +154,10 @@ export async function executeSequentialPhase(
       return;
     }
 
-    // Step 2: Execute each task sequentially in MAIN worktree
+    // Step 2: Detect quality checks from project config
+    const qualityChecks = await detectQualityChecksFromConfig();
+
+    // Step 3: Execute each task sequentially in MAIN worktree
     const mainWorktreePath = `.worktrees/${plan.runId}-main`;
 
     for (const task of pendingTasks) {
@@ -156,8 +173,8 @@ export async function executeSequentialPhase(
           workingDirectory: mainWorktreePath,
         });
 
-        // Generate prompt (stub for now, will use task-executor.ts later)
-        const prompt = generateTaskPrompt(task.id, plan);
+        // Generate prompt with full task-executor template
+        const prompt = generateTaskPrompt(task, plan, qualityChecks);
 
         // Execute task
         const result = await thread.run(prompt);

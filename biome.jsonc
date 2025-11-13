@@ -116,6 +116,19 @@
               {
                 "formats": ["PascalCase"],
                 "selector": { "kind": "typeLike" }
+              },
+              // MCP API uses snake_case
+              {
+                "formats": ["camelCase", "snake_case"],
+                "selector": { "kind": "objectLiteralProperty" }
+              },
+              {
+                "formats": ["camelCase", "snake_case"],
+                "selector": { "kind": "classProperty" }
+              },
+              {
+                "formats": ["camelCase", "snake_case"],
+                "selector": { "kind": "typeProperty" }
               }
             ],
             "strictCase": false

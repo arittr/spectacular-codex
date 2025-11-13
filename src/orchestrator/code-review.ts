@@ -15,7 +15,9 @@
  */
 
 import { Codex } from '@openai/codex-sdk';
-import type { Phase, Plan } from '../types';
+import { generateReviewPrompt } from '@/prompts/code-reviewer';
+import { generateFixerPrompt } from '@/prompts/fixer';
+import type { Phase, Plan } from '@/types';
 
 /**
  * Maximum number of rejections before escalation.
@@ -110,59 +112,4 @@ export async function runCodeReview(phase: Phase, plan: Plan): Promise<void> {
 
     // Loop continues to re-review
   }
-}
-
-/**
- * Generate code review prompt.
- *
- * This is a placeholder that will be replaced with actual prompt generation
- * from src/prompts/code-reviewer.ts (task-3-1).
- *
- * @param phase - Phase to review
- * @param plan - Execution plan
- * @returns Code review prompt
- */
-function generateReviewPrompt(phase: Phase, plan: Plan): string {
-  // Placeholder implementation
-  // Real implementation will import from src/prompts/code-reviewer.ts
-  return `
-# Code Review for Phase ${phase.id}: ${phase.name}
-
-You are reviewing code for run ID: ${plan.runId}
-
-Review the implementation and provide a verdict:
-- VERDICT: APPROVED if code meets all requirements
-- VERDICT: REJECTED if code has issues
-
-Tasks in this phase:
-${phase.tasks.map((t) => `- ${t.id}: ${t.name}`).join('\n')}
-
-Provide your review with clear verdict.
-`.trim();
-}
-
-/**
- * Generate fixer prompt.
- *
- * This is a placeholder that will be replaced with actual prompt generation
- * from src/prompts/fixer.ts (task-3-1).
- *
- * @param reviewResult - Output from code review
- * @param plan - Execution plan
- * @returns Fixer prompt
- */
-function generateFixerPrompt(reviewResult: string, plan: Plan): string {
-  // Placeholder implementation
-  // Real implementation will import from src/prompts/fixer.ts
-  return `
-# Fix Issues from Code Review
-
-Run ID: ${plan.runId}
-
-The code review identified issues:
-
-${reviewResult}
-
-Please fix all issues mentioned in the review.
-`.trim();
 }

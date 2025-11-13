@@ -14,10 +14,14 @@
  * @module orchestrator/parallel-phase
  */
 
+import { promises as fs } from 'node:fs';
 import { Codex } from '@openai/codex-sdk';
-import type { CodexThreadResult, ExecutionJob, Phase, Plan } from '../types';
-import { checkExistingWork } from '../utils/branch-tracker';
-import { cleanupWorktree, createWorktree } from '../utils/git';
+import { generateTaskPrompt } from '@/prompts/task-executor';
+import type { CodexThreadResult, ExecutionJob, Phase, Plan } from '@/types';
+import { checkExistingWork } from '@/utils/branch-tracker';
+import { cleanupWorktree, createWorktree } from '@/utils/git';
+import { detectQualityChecks } from '@/utils/project-config';
+import { getStackingBackend } from '@/utils/stacking';
 
 /**
  * Extracts branch name from Codex thread output.
@@ -33,39 +37,77 @@ function extractBranchName(output: string): string | undefined {
 }
 
 /**
- * Generates a basic task execution prompt.
+ * Detects quality checks from project config files.
  *
- * NOTE: This is a stub implementation. The real prompt generation should be
- * delegated to src/prompts/task-executor.ts (Task 2-1).
+ * Tries AGENTS.md first (Codex convention), then CLAUDE.md as fallback.
  *
- * @param taskId - Task identifier
- * @param plan - Execution plan
- * @returns Prompt string
+ * @returns Quality checks object with test, typeCheck, and lint commands
  */
-function generateTaskPrompt(taskId: string, plan: Plan): string {
-  return `
-You are implementing Task ${taskId} for run ${plan.runId}.
+async function detectQualityChecksFromConfig(): Promise<{
+  test: string;
+  typeCheck: string;
+  lint: string;
+}> {
+  const defaults = { lint: 'pnpm lint', test: 'pnpm test', typeCheck: 'pnpm check-types' };
 
-## Your Process
+  try {
+    // Try reading AGENTS.md first (Codex convention), then CLAUDE.md fallback
+    let configContent: string | undefined;
+    try {
+      configContent = await fs.readFile('AGENTS.md', 'utf-8');
+    } catch {
+      try {
+        configContent = await fs.readFile('CLAUDE.md', 'utf-8');
+      } catch {
+        // Use defaults if neither file exists
+        return defaults;
+      }
+    }
 
-### 1. Navigate to Worktree
-cd .worktrees/${plan.runId}-task-${taskId}
+    if (configContent) {
+      const detected = detectQualityChecks(configContent);
+      return {
+        lint: detected.lintCommand || defaults.lint,
+        test: detected.testCommand || defaults.test,
+        typeCheck: detected.typeCheckCommand || defaults.typeCheck,
+      };
+    }
+  } catch (_error) {
+    // If detection fails, use defaults
+  }
 
-### 2. Implement Task (TDD)
-- Write test first
-- Watch it fail
-- Write minimal code to pass
-- Watch it pass
+  return defaults;
+}
 
-### 3. Create Branch
-gs branch create ${plan.runId}-task-${taskId}-{name} -m "Task ${taskId}"
+/**
+ * Stacks successful branches from parallel execution.
+ *
+ * @param results - Thread execution results
+ * @param plan - Execution plan
+ * @param job - Execution job (for error reporting)
+ */
+async function stackSuccessfulBranches(
+  results: CodexThreadResult[],
+  plan: Plan,
+  job: ExecutionJob
+): Promise<void> {
+  const successfulBranches = results
+    .filter((result) => result.success && result.branch)
+    .map((result) => result.branch as string);
 
-### 4. Detach HEAD
-git switch --detach
+  if (successfulBranches.length > 0) {
+    try {
+      const backend = await getStackingBackend();
+      const mainWorktreePath = `.worktrees/${plan.runId}-main`;
 
-### 5. Report Completion
-Output: BRANCH: {branch-name}
-`;
+      // Stack all successful branches onto the base branch
+      await backend.stackBranches(successfulBranches, 'main', mainWorktreePath);
+    } catch (error) {
+      // Log stacking error but don't fail the phase
+      // Branches exist, just not stacked properly
+      job.error = `Warning: Branch stacking failed: ${String(error)}`;
+    }
+  }
 }
 
 /**
@@ -73,10 +115,12 @@ Output: BRANCH: {branch-name}
  *
  * This function implements the core parallel execution pattern:
  * 1. Check existing work (resume logic)
- * 2. Create worktrees for pending tasks only
- * 3. Spawn threads in parallel via Promise.all()
- * 4. Handle individual failures gracefully (wait for all)
- * 5. Clean up worktrees after execution
+ * 2. Detect quality checks from AGENTS.md/CLAUDE.md (Codex convention)
+ * 3. Create worktrees for pending tasks only
+ * 4. Spawn threads in parallel via Promise.all() with full task prompts
+ * 5. Handle individual failures gracefully (wait for all)
+ * 6. Stack successful branches using git-spice
+ * 7. Clean up worktrees after execution
  *
  * Individual task failures are tracked but don't stop other threads.
  * Git branches are the source of truth for task completion.
@@ -113,7 +157,10 @@ export async function executeParallelPhase(
       return;
     }
 
-    // Step 2: Create worktrees for pending tasks
+    // Step 2: Detect quality checks from project config
+    const qualityChecks = await detectQualityChecksFromConfig();
+
+    // Step 3: Create worktrees for pending tasks
     const worktreePaths: string[] = [];
     for (const task of pendingTasks) {
       const worktreePath = `.worktrees/${plan.runId}-task-${task.id}`;
@@ -122,7 +169,7 @@ export async function executeParallelPhase(
       await createWorktree(worktreePath, 'HEAD', process.cwd());
     }
 
-    // Step 3: Spawn threads in parallel via Promise.all()
+    // Step 4: Spawn threads in parallel via Promise.all()
     const threadPromises = pendingTasks.map(async (task) => {
       try {
         // Create Codex instance
@@ -133,8 +180,8 @@ export async function executeParallelPhase(
           workingDirectory: `.worktrees/${plan.runId}-task-${task.id}`,
         });
 
-        // Generate prompt (stub for now, will use task-executor.ts later)
-        const prompt = generateTaskPrompt(task.id, plan);
+        // Generate prompt with full task-executor template
+        const prompt = generateTaskPrompt(task, plan, qualityChecks);
 
         // Execute task
         const result = await thread.run(prompt);
@@ -170,7 +217,7 @@ export async function executeParallelPhase(
     // Wait for ALL threads to complete (even if some fail)
     const results = await Promise.all(threadPromises);
 
-    // Step 4: Update job status with task results
+    // Step 5: Update job status with task results
     for (const result of results) {
       if (result.success) {
         const taskStatus: {
@@ -205,7 +252,10 @@ export async function executeParallelPhase(
       }
     }
 
-    // Step 5: Clean up worktrees
+    // Step 6: Stack branches
+    await stackSuccessfulBranches(results, plan, job);
+
+    // Step 7: Clean up worktrees
     for (const worktreePath of worktreePaths) {
       await cleanupWorktree(worktreePath, process.cwd());
     }

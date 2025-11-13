@@ -8,15 +8,14 @@
  */
 
 import { promises as fs } from 'node:fs';
-import type { ExecutionJob, Plan } from '../types';
-import { extractRunId, parsePlan } from '../utils/plan-parser';
-import { validatePlanPath } from '../utils/validation';
+import type { ExecutionJob, Plan } from '@/types';
+import { extractRunId, parsePlan } from '@/utils/plan-parser';
+import { validatePlanPath } from '@/utils/validation';
 
 /**
  * Arguments for the execute handler.
  */
 export interface ExecuteArgs {
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   plan_path: unknown;
 }
 
@@ -24,7 +23,6 @@ export interface ExecuteArgs {
  * Response from the execute handler.
  */
 export interface ExecuteResponse {
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   run_id: string;
   status: 'started';
 }
@@ -101,17 +99,19 @@ export async function handleExecute(
 
   // Return immediately
   return {
-    // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
     run_id: runId,
     status: 'started',
   };
 }
 
 /**
- * Executes all phases in the plan sequentially.
+ * Executes all phases in the plan sequentially with per-phase code review.
  *
  * This function runs in the background after handleExecute returns.
  * It updates the job status as execution progresses.
+ *
+ * Review frequency: per-phase (after each phase completes)
+ * This ensures quality gates at each major checkpoint.
  *
  * @param plan - Parsed implementation plan
  * @param job - Job tracker to update with progress
@@ -120,14 +120,27 @@ async function executePhases(plan: Plan, job: ExecutionJob): Promise<void> {
   for (const phase of plan.phases) {
     job.phase = phase.id;
 
+    // Execute phase
     if (phase.strategy === 'parallel') {
       // Dynamic import to avoid circular dependency
-      const { executeParallelPhase } = await import('../orchestrator/parallel-phase');
+      const { executeParallelPhase } = await import('@/orchestrator/parallel-phase');
       await executeParallelPhase(phase, plan, job);
     } else {
       // Sequential phase
-      const { executeSequentialPhase } = await import('../orchestrator/sequential-phase.js');
+      const { executeSequentialPhase } = await import('@/orchestrator/sequential-phase');
       await executeSequentialPhase(phase, plan, job);
+    }
+
+    // Code review after phase completes (per-phase frequency)
+    try {
+      const { runCodeReview } = await import('@/orchestrator/code-review');
+      await runCodeReview(phase, plan);
+    } catch (error) {
+      // Code review failure fails the job
+      job.status = 'failed';
+      job.error = `Code review failed for phase ${phase.id}: ${String(error)}`;
+      job.completedAt = new Date();
+      throw error;
     }
   }
 

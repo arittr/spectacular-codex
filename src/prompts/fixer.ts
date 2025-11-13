@@ -11,7 +11,7 @@
  * @module prompts/fixer
  */
 
-import type { Plan } from '../types';
+import type { Plan } from '@/types';
 
 /**
  * Generates a prompt for fixing code review issues with embedded skill instructions.

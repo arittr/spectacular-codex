@@ -15,11 +15,11 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { handleExecute } from './handlers/execute';
-import { handlePlan } from './handlers/plan';
-import { handleSpec } from './handlers/spec';
-import { handleStatus } from './handlers/status';
-import type { ExecutionJob } from './types';
+import { handleExecute } from '@/handlers/execute';
+import { handlePlan } from '@/handlers/plan';
+import { handleSpec } from '@/handlers/spec';
+import { handleStatus } from '@/handlers/status';
+import type { ExecutionJob } from '@/types';
 
 // Job tracker (in-memory state shared across handlers)
 const jobs = new Map<string, ExecutionJob>();
@@ -46,7 +46,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           'Execute implementation plan with automatic parallel/sequential orchestration. Returns immediately with run_id for status polling.',
         inputSchema: {
           properties: {
-            // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
             plan_path: {
               description: 'Path to plan.md file (e.g., specs/abc123/plan.md)',
               type: 'string',
@@ -62,7 +61,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           'Get execution status for a running or completed job. Shows current phase, task statuses, and completion timestamps.',
         inputSchema: {
           properties: {
-            // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
             run_id: {
               description: 'Run identifier returned by spectacular_execute',
               type: 'string',
@@ -78,12 +76,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           'Generate feature specification using brainstorming and writing-specs skill. Creates spec.md in specs/{slug}/ directory.',
         inputSchema: {
           properties: {
-            description: {
+            feature_request: {
               description: 'Brief feature description to elaborate via brainstorming',
               type: 'string',
             },
           },
-          required: ['description'],
+          required: ['feature_request'],
           type: 'object',
         },
         name: 'spectacular_spec',
@@ -93,7 +91,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           'Generate implementation plan from specification. Creates plan.md with sequential/parallel phase decomposition.',
         inputSchema: {
           properties: {
-            // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
             spec_path: {
               description: 'Path to spec.md file (e.g., specs/my-feature/spec.md)',
               type: 'string',

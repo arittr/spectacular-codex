@@ -6,14 +6,13 @@
  * @module handlers/status
  */
 
-import type { ExecutionJob } from '../types';
-import { validateRunId } from '../utils/validation';
+import type { ExecutionJob } from '@/types';
+import { validateRunId } from '@/utils/validation';
 
 /**
  * Arguments for the status handler.
  */
 export interface StatusArgs {
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   run_id: unknown;
 }
 
@@ -21,7 +20,6 @@ export interface StatusArgs {
  * Response from the status handler.
  */
 export interface StatusResponse {
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   run_id: string;
   status: 'running' | 'completed' | 'failed';
   phase: number;
@@ -31,9 +29,7 @@ export interface StatusResponse {
     branch?: string;
     error?: string;
   }>;
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   started_at?: string;
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   completed_at?: string;
   error?: string;
 }
@@ -75,9 +71,7 @@ export async function handleStatus(
   // Format response
   const response: StatusResponse = {
     phase: job.phase,
-    // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
     run_id: job.runId,
-    // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
     started_at: job.startedAt.toISOString(),
     status: job.status,
     tasks: job.tasks,

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExecutionJob, Phase, Plan } from '../../types';
-import * as branchTracker from '../../utils/branch-tracker';
-import { executeSequentialPhase } from '../sequential-phase';
+import { executeSequentialPhase } from '@/orchestrator/sequential-phase';
+import type { ExecutionJob, Phase, Plan } from '@/types';
+import * as branchTracker from '@/utils/branch-tracker';
 
 // Mock dependencies
-vi.mock('../../utils/branch-tracker');
+vi.mock('@/utils/branch-tracker');
 
 // Mock Codex SDK
 interface MockCodexThread {

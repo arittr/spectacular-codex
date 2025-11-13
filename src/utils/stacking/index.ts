@@ -7,8 +7,8 @@
  * @module utils/stacking
  */
 
-import { GitSpiceBackend } from './git-spice';
-import type { StackingBackend } from './types';
+import { GitSpiceBackend } from '@/utils/stacking/git-spice';
+import type { StackingBackend } from '@/utils/stacking/types';
 
 /**
  * Get the configured stacking backend.
@@ -51,6 +51,6 @@ export async function getStackingBackend(): Promise<StackingBackend> {
   return backend;
 }
 
-export { GitSpiceBackend } from './git-spice';
+export { GitSpiceBackend } from '@/utils/stacking/git-spice';
 // Re-export types for convenience
-export type { StackingBackend } from './types';
+export type { StackingBackend } from '@/utils/stacking/types';

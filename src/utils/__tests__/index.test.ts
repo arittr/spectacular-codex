@@ -352,7 +352,7 @@ describe('MCP Server Core', () => {
           description: expect.stringContaining('Generate feature specification'),
           inputSchema: expect.objectContaining({
             properties: expect.objectContaining({
-              description: expect.any(Object),
+              feature_request: expect.any(Object),
             }),
             type: 'object',
           }),

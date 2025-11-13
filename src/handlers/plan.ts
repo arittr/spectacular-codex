@@ -9,15 +9,14 @@
  */
 
 import { Codex } from '@openai/codex-sdk';
-import { generatePlanPrompt } from '../prompts/plan-generator';
-import type { ExecutionJob } from '../types';
-import { validatePlanPath } from '../utils/validation';
+import { generatePlanPrompt } from '@/prompts/plan-generator';
+import type { ExecutionJob } from '@/types';
+import { validatePlanPath } from '@/utils/validation';
 
 /**
  * Arguments for the plan handler.
  */
 export interface PlanArgs {
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   spec_path: unknown;
 }
 
@@ -25,10 +24,8 @@ export interface PlanArgs {
  * Response from the plan handler.
  */
 export interface PlanResponse {
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   run_id: string;
   status: 'created';
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
   plan_path: string;
 }
 
@@ -50,7 +47,6 @@ export interface PlanResponse {
 export async function handlePlan(
   args: PlanArgs,
   jobs: Map<string, ExecutionJob>
-  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
 ): Promise<{ run_id: string; status: string }> {
   // Validate inputs
   if (!args.spec_path) {
@@ -97,7 +93,6 @@ export async function handlePlan(
 
   // Return immediately
   return {
-    // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
     run_id: runId,
     status: 'started',
   };
