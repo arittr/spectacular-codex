@@ -37,6 +37,12 @@ export interface Task {
   /** Human-readable task name */
   name: string;
 
+  /** Task description */
+  description: string;
+
+  /** Task dependencies (task IDs this task depends on) */
+  dependencies?: string[];
+
   /** List of files this task modifies/creates */
   files: string[];
 
@@ -73,6 +79,9 @@ export interface Plan {
 
   /** Feature slug from spec directory */
   featureSlug: string;
+
+  /** Optional plan title */
+  title?: string;
 
   /** Phases to execute */
   phases: Phase[];
@@ -134,4 +143,26 @@ export interface CodexThreadResult {
 
   /** Error message (if failure) */
   error?: string;
+}
+
+/**
+ * A completed task with branch information.
+ */
+export interface CompletedTask extends Task {
+  /** Branch name for this completed task */
+  branch: string;
+
+  /** Number of commits in the branch */
+  commitCount: number;
+}
+
+/**
+ * Result of checking existing work for a phase.
+ */
+export interface ExistingWork {
+  /** Tasks that are already completed */
+  completedTasks: CompletedTask[];
+
+  /** Tasks that still need to be executed */
+  pendingTasks: Task[];
 }
