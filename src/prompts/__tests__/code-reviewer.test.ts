@@ -11,8 +11,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { Phase, Plan } from '../types.js';
-import { generateReviewPrompt } from './code-reviewer.js';
+import { generateReviewPrompt } from '@/prompts/code-reviewer';
+import type { Phase, Plan } from '@/types';
 
 describe('generateReviewPrompt', () => {
   const mockPhase: Phase = {

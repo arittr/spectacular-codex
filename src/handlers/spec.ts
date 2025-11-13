@@ -9,8 +9,8 @@
 
 import { randomBytes } from 'node:crypto';
 import { Codex } from '@openai/codex-sdk';
-import { generateSpecPrompt } from '../prompts/spec-generator.js';
-import type { ExecutionJob } from '../types.js';
+import { generateSpecPrompt } from '../prompts/spec-generator';
+import type { ExecutionJob } from '../types';
 
 /**
  * Arguments for the spec handler.

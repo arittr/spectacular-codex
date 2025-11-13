@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizePath, validateBranchName, validatePlanPath, validateRunId } from './validation.js';
+import {
+  sanitizePath,
+  validateBranchName,
+  validatePlanPath,
+  validateRunId,
+} from '@/utils/validation';
 
 describe('validatePlanPath', () => {
   it('should accept valid plan paths under specs/', () => {

@@ -10,8 +10,9 @@
  * @module index.test
  */
 
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExecutionJob } from './types.js';
+import type { ExecutionJob } from '@/types';
 
 // Mock the MCP SDK
 const mockConnect = vi.fn();
@@ -66,18 +67,21 @@ describe('MCP Server Core', () => {
 
   it('registers tools/call request handler', async () => {
     // Import triggers server initialization
-    await import('./index.js');
+    await import('@/index');
 
     // Server should register a tools/call handler
-    expect(mockSetRequestHandler).toHaveBeenCalledWith('tools/call', expect.any(Function));
+    expect(mockSetRequestHandler).toHaveBeenCalledWith(CallToolRequestSchema, expect.any(Function));
   });
 
   it('registers tools/list request handler', async () => {
     // Import triggers server initialization
-    await import('./index.js');
+    await import('@/index');
 
     // Server should register a tools/list handler
-    expect(mockSetRequestHandler).toHaveBeenCalledWith('tools/list', expect.any(Function));
+    expect(mockSetRequestHandler).toHaveBeenCalledWith(
+      ListToolsRequestSchema,
+      expect.any(Function)
+    );
   });
 
   it('routes spectacular_execute to handleExecute', async () => {
@@ -86,11 +90,11 @@ describe('MCP Server Core', () => {
       status: 'started',
     });
 
-    await import('./index.js');
+    await import('@/index');
 
     // Get the registered handler
     const callHandler = mockSetRequestHandler.mock.calls.find(
-      (call) => call[0] === 'tools/call'
+      (call) => call[0] === CallToolRequestSchema
     )?.[1];
 
     expect(callHandler).toBeDefined();
@@ -122,10 +126,10 @@ describe('MCP Server Core', () => {
       tasks: [],
     });
 
-    await import('./index.js');
+    await import('@/index');
 
     const callHandler = mockSetRequestHandler.mock.calls.find(
-      (call) => call[0] === 'tools/call'
+      (call) => call[0] === CallToolRequestSchema
     )?.[1];
 
     const result = await callHandler({
@@ -151,10 +155,10 @@ describe('MCP Server Core', () => {
       status: 'created',
     });
 
-    await import('./index.js');
+    await import('@/index');
 
     const callHandler = mockSetRequestHandler.mock.calls.find(
-      (call) => call[0] === 'tools/call'
+      (call) => call[0] === CallToolRequestSchema
     )?.[1];
 
     const result = await callHandler({
@@ -183,10 +187,10 @@ describe('MCP Server Core', () => {
       status: 'created',
     });
 
-    await import('./index.js');
+    await import('@/index');
 
     const callHandler = mockSetRequestHandler.mock.calls.find(
-      (call) => call[0] === 'tools/call'
+      (call) => call[0] === CallToolRequestSchema
     )?.[1];
 
     const result = await callHandler({
@@ -210,10 +214,10 @@ describe('MCP Server Core', () => {
   });
 
   it('returns error response for unknown tool', async () => {
-    await import('./index.js');
+    await import('@/index');
 
     const callHandler = mockSetRequestHandler.mock.calls.find(
-      (call) => call[0] === 'tools/call'
+      (call) => call[0] === CallToolRequestSchema
     )?.[1];
 
     const result = await callHandler({
@@ -232,10 +236,10 @@ describe('MCP Server Core', () => {
   it('catches handler errors and formats response', async () => {
     mockExecuteHandler.mockRejectedValue(new Error('Plan not found'));
 
-    await import('./index.js');
+    await import('@/index');
 
     const callHandler = mockSetRequestHandler.mock.calls.find(
-      (call) => call[0] === 'tools/call'
+      (call) => call[0] === CallToolRequestSchema
     )?.[1];
 
     const result = await callHandler({
@@ -281,10 +285,10 @@ describe('MCP Server Core', () => {
       }
     );
 
-    await import('./index.js');
+    await import('@/index');
 
     const callHandler = mockSetRequestHandler.mock.calls.find(
-      (call) => call[0] === 'tools/call'
+      (call) => call[0] === CallToolRequestSchema
     )?.[1];
 
     // Execute
@@ -312,10 +316,10 @@ describe('MCP Server Core', () => {
   });
 
   it('returns tool list on tools/list request', async () => {
-    await import('./index.js');
+    await import('@/index');
 
     const listHandler = mockSetRequestHandler.mock.calls.find(
-      (call) => call[0] === 'tools/list'
+      (call) => call[0] === ListToolsRequestSchema
     )?.[1];
 
     expect(listHandler).toBeDefined();

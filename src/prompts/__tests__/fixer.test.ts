@@ -11,8 +11,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { Plan } from '../types.js';
-import { generateFixerPrompt } from './fixer.js';
+import { generateFixerPrompt } from '@/prompts/fixer';
+import type { Plan } from '@/types';
 
 describe('generateFixerPrompt', () => {
   const mockPlan: Plan = {
