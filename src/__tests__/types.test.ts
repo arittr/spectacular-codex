@@ -17,6 +17,7 @@ describe('TypeScript Core Types', () => {
         startedAt: new Date(),
         status: 'running',
         tasks: [],
+        totalPhases: 3,
       };
 
       expect(job.status).toBe('running');
@@ -31,6 +32,7 @@ describe('TypeScript Core Types', () => {
         startedAt: new Date(),
         status: 'completed',
         tasks: [],
+        totalPhases: 3,
       };
 
       expect(job.status).toBe('completed');
@@ -45,6 +47,7 @@ describe('TypeScript Core Types', () => {
         startedAt: new Date(),
         status: 'failed',
         tasks: [],
+        totalPhases: 3,
       };
 
       expect(job.status).toBe('failed');
@@ -215,6 +218,7 @@ describe('TypeScript Core Types', () => {
         startedAt: new Date(),
         status: 'running',
         tasks: [],
+        totalPhases: 1,
         // error, completedAt are optional
       };
 
