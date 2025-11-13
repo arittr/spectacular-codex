@@ -14,6 +14,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { handleExecute } from './handlers/execute.js';
 import { handlePlan } from './handlers/plan.js';
 import { handleSpec } from './handlers/spec.js';
@@ -37,8 +38,7 @@ const server = new Server(
 );
 
 // Register tools/list handler
-// @ts-expect-error - MCP SDK types are complex, using runtime approach
-server.setRequestHandler('tools/list', async () => {
+server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
@@ -109,9 +109,7 @@ server.setRequestHandler('tools/list', async () => {
 });
 
 // Register tools/call handler
-// @ts-expect-error - MCP SDK types are complex, using runtime approach
-server.setRequestHandler('tools/call', async (request) => {
-  // @ts-expect-error - request params available at runtime
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
   // biome-ignore lint/suspicious/noExplicitAny: MCP SDK request params use any
   const { name, arguments: args } = request.params as { name: string; arguments: any };
 
