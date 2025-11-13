@@ -6,8 +6,8 @@
  * @module handlers/status
  */
 
-import type { ExecutionJob } from '../types.js';
-import { validateRunId } from '../utils/validation.js';
+import type { ExecutionJob } from '../types';
+import { validateRunId } from '../utils/validation';
 
 /**
  * Arguments for the status handler.

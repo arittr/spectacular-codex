@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractRunId, parsePlan } from './plan-parser.js';
+import { extractRunId, parsePlan } from '@/utils/plan-parser';
 
 describe('extractRunId', () => {
   it('extracts runId from plan path with specs directory', () => {
