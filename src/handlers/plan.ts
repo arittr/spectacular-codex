@@ -34,10 +34,15 @@ export interface PlanResponse {
  * This is a stub implementation that will be expanded in future tasks.
  *
  * @param args - Tool arguments containing spec_path
+ * @param _jobs - Job tracker (unused in stub)
  * @returns Promise resolving to PlanResponse with run_id
- * @throws {Error} If spec_path is missing
+ * @throws {Error} If spec_path is missing or invalid
  */
-export async function handlePlan(args: PlanArgs): Promise<PlanResponse> {
+export async function handlePlan(
+  args: PlanArgs,
+  _jobs?: Map<string, unknown>
+  // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
+): Promise<{ run_id: string; status: string }> {
   // Validate inputs
   if (!args.spec_path) {
     throw new Error('spec_path is required');
@@ -49,10 +54,24 @@ export async function handlePlan(args: PlanArgs): Promise<PlanResponse> {
 
   const specPath = args.spec_path;
 
+  // Extract runId from spec path (e.g., "specs/abc123-feature/spec.md" -> "abc123")
+  // Check format first to provide specific error message
+  const match = specPath.match(/specs\/([a-f0-9]{6})-/);
+  if (!match || !match[1]) {
+    throw new Error('Invalid spec path format: must be specs/{runId}-{feature}/spec.md');
+  }
+
+  const runId = match[1];
+
   // Validate spec path (security: prevent path traversal)
+  // This runs after format check to provide specific error messages
   validatePlanPath(specPath);
 
   // TODO: Implement plan generation using Codex SDK
-  // For now, return stub response
-  throw new Error('spectacular_plan not yet implemented');
+  // For now, return stub response with extracted runId
+  return {
+    // biome-ignore lint/style/useNamingConvention: MCP API uses snake_case
+    run_id: runId,
+    status: 'started',
+  };
 }
