@@ -18,7 +18,7 @@ interface MockCodexInstance {
 const mockCodex = {
   create(_workingDirectory: string): MockCodexInstance {
     const mockThread: MockCodexThread = {
-      run: vi.fn().mockResolvedValue({ output: 'BRANCH: test-branch-name' }),
+      run: vi.fn().mockResolvedValue({ finalResponse: 'BRANCH: test-branch-name' }),
     };
 
     const instance: MockCodexInstance = {
@@ -35,7 +35,7 @@ const mockCodex = {
 };
 
 // Stub Codex constructor for now (will be replaced when SDK is installed)
-vi.mock('@openai/codex', () => {
+vi.mock('@openai/codex-sdk', () => {
   const MockCodexConstructor = vi
     .fn()
     .mockImplementation((config: { workingDirectory: string }) => {
@@ -125,7 +125,7 @@ describe('sequential-phase orchestrator', () => {
             if (taskId) {
               executionOrder.push(taskId);
             }
-            return { output: `BRANCH: abc123-task-${taskId}-impl` };
+            return { finalResponse: `BRANCH: abc123-task-${taskId}-impl` };
           }),
         };
 
@@ -166,7 +166,7 @@ describe('sequential-phase orchestrator', () => {
         worktreePaths.push(workingDirectory);
 
         const mockThread: MockCodexThread = {
-          run: vi.fn().mockResolvedValue({ output: 'BRANCH: test-branch' }),
+          run: vi.fn().mockResolvedValue({ finalResponse: 'BRANCH: test-branch' }),
         };
 
         const instance: MockCodexInstance = {
@@ -240,7 +240,7 @@ describe('sequential-phase orchestrator', () => {
         const mockThread: MockCodexThread = {
           run: shouldFail
             ? vi.fn().mockRejectedValue(new Error('Task 4-2 failed'))
-            : vi.fn().mockResolvedValue({ output: 'BRANCH: test-branch' }),
+            : vi.fn().mockResolvedValue({ finalResponse: 'BRANCH: test-branch' }),
         };
 
         const instance: MockCodexInstance = {
@@ -279,7 +279,7 @@ describe('sequential-phase orchestrator', () => {
 
         const mockThread: MockCodexThread = {
           run: vi.fn().mockResolvedValue({
-            output: `BRANCH: abc123-task-${taskId}-impl`,
+            finalResponse: `BRANCH: abc123-task-${taskId}-impl`,
           }),
         };
 
@@ -334,9 +334,9 @@ describe('sequential-phase orchestrator', () => {
         const taskId = `4-${callCount}`;
 
         const mockThread: MockCodexThread = {
-          run: vi
-            .fn()
-            .mockResolvedValue({ output: `BRANCH: abc123-task-${taskId}-branch-${callCount}` }),
+          run: vi.fn().mockResolvedValue({
+            finalResponse: `BRANCH: abc123-task-${taskId}-branch-${callCount}`,
+          }),
         };
 
         const instance: MockCodexInstance = {
