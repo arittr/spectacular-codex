@@ -4,7 +4,7 @@ import * as branchTracker from '../../utils/branch-tracker';
 import { executeSequentialPhase } from '../sequential-phase';
 
 // Mock dependencies
-vi.mock('../utils/branch-tracker.js');
+vi.mock('../../utils/branch-tracker');
 
 // Mock Codex SDK
 interface MockCodexThread {
