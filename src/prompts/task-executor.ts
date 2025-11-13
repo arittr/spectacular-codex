@@ -8,7 +8,7 @@
  * @module prompts/task-executor
  */
 
-import type { Plan, Task } from '../types.js';
+import type { Plan, Task } from '../types';
 
 /**
  * Quality check commands for task implementation.
