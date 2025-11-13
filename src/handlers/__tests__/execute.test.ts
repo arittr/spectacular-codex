@@ -7,15 +7,15 @@
 
 import { promises as fs } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExecutionJob } from '../types.js';
-import { handleExecute } from './execute.js';
+import { handleExecute } from '@/handlers/execute';
+import type { ExecutionJob } from '@/types';
 
 // Mock the orchestrator module (will be implemented in later phases)
-vi.mock('../orchestrator/parallel-phase.js', () => ({
+vi.mock('@/orchestrator/parallel-phase', () => ({
   executeParallelPhase: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-vi.mock('../orchestrator/sequential-phase.js', () => ({
+vi.mock('@/orchestrator/sequential-phase', () => ({
   executeSequentialPhase: vi.fn().mockResolvedValue({ success: true }),
 }));
 
@@ -151,7 +151,7 @@ Feature: slow
       vi.spyOn(fs, 'readFile').mockResolvedValue(planContent);
 
       // Mock orchestrator to be slow
-      const { executeParallelPhase } = await import('../orchestrator/parallel-phase.js');
+      const { executeParallelPhase } = await import('@/orchestrator/parallel-phase');
       vi.mocked(executeParallelPhase).mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve(), 10000))
       );
@@ -235,7 +235,7 @@ Feature: ok
       vi.spyOn(fs, 'readFile').mockResolvedValue(planContent);
 
       // Reset mocks to ensure they resolve quickly
-      const { executeParallelPhase } = await import('../orchestrator/parallel-phase.js');
+      const { executeParallelPhase } = await import('@/orchestrator/parallel-phase');
       vi.mocked(executeParallelPhase).mockResolvedValue(undefined);
 
       await handleExecute({ plan_path: planPath }, jobs);
@@ -270,7 +270,7 @@ Feature: err
       vi.spyOn(fs, 'readFile').mockResolvedValue(planContent);
 
       // Mock orchestrator to fail
-      const { executeParallelPhase } = await import('../orchestrator/parallel-phase.js');
+      const { executeParallelPhase } = await import('@/orchestrator/parallel-phase');
       vi.mocked(executeParallelPhase).mockRejectedValue(new Error('Execution failed'));
 
       await handleExecute({ plan_path: planPath }, jobs);
@@ -359,7 +359,7 @@ Feature: retry
       vi.spyOn(fs, 'readFile').mockResolvedValue(planContent);
 
       // Reset mocks to ensure they resolve quickly
-      const { executeParallelPhase } = await import('../orchestrator/parallel-phase.js');
+      const { executeParallelPhase } = await import('@/orchestrator/parallel-phase');
       vi.mocked(executeParallelPhase).mockResolvedValue(undefined);
 
       // First execution

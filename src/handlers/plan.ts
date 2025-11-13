@@ -9,9 +9,9 @@
  */
 
 import { Codex } from '@openai/codex-sdk';
-import { generatePlanPrompt } from '../prompts/plan-generator.js';
-import type { ExecutionJob } from '../types.js';
-import { validatePlanPath } from '../utils/validation.js';
+import { generatePlanPrompt } from '../prompts/plan-generator';
+import type { ExecutionJob } from '../types';
+import { validatePlanPath } from '../utils/validation';
 
 /**
  * Arguments for the plan handler.

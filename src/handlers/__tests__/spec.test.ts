@@ -6,8 +6,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExecutionJob } from '../types.js';
-import { handleSpec } from './spec.js';
+import { handleSpec } from '@/handlers/spec';
+import type { ExecutionJob } from '@/types';
 
 describe('handleSpec', () => {
   // Job tracker that handler will use

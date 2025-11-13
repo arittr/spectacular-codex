@@ -8,7 +8,7 @@
  */
 
 import { execa } from 'execa';
-import type { StackingBackend } from './types.js';
+import type { StackingBackend } from './types';
 
 /**
  * Git-spice backend for branch stacking.
