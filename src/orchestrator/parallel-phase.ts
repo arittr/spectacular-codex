@@ -15,13 +15,13 @@
  */
 
 import { promises as fs } from 'node:fs';
-import { Codex } from '@openai/codex-sdk';
-import { generateTaskPrompt } from '@/prompts/task-executor';
-import type { CodexThreadResult, ExecutionJob, Phase, Plan } from '@/types';
+import { generateTaskPrompt, type TaskPromptOptions } from '@/prompts/task-executor';
+import type { CodexThreadResult, ExecutionJob, ExecutionOptions, Phase, Plan, Task } from '@/types';
 import { checkExistingWork } from '@/utils/branch-tracker';
 import { cleanupWorktree, createWorktree } from '@/utils/git';
 import { detectQualityChecks } from '@/utils/project-config';
 import { getStackingBackend } from '@/utils/stacking';
+import { runSubagentPrompt } from '@/utils/subagent-runner';
 
 /**
  * Extracts branch name from Codex thread output.
@@ -133,7 +133,8 @@ async function stackSuccessfulBranches(
 export async function executeParallelPhase(
   phase: Phase,
   plan: Plan,
-  job: ExecutionJob
+  job: ExecutionJob,
+  options: ExecutionOptions = {}
 ): Promise<void> {
   try {
     // Step 1: Check existing work (resume logic)
@@ -161,61 +162,8 @@ export async function executeParallelPhase(
     const qualityChecks = await detectQualityChecksFromConfig();
 
     // Step 3: Create worktrees for pending tasks
-    const worktreePaths: string[] = [];
-    for (const task of pendingTasks) {
-      const worktreePath = `.worktrees/${plan.runId}-task-${task.id}`;
-      worktreePaths.push(worktreePath);
-
-      await createWorktree(worktreePath, 'HEAD', process.cwd());
-    }
-
-    // Step 4: Spawn threads in parallel via Promise.all()
-    const threadPromises = pendingTasks.map(async (task) => {
-      try {
-        // Create Codex instance
-        const codex = new Codex();
-
-        // Start thread with working directory
-        const thread = codex.startThread({
-          workingDirectory: `.worktrees/${plan.runId}-task-${task.id}`,
-        });
-
-        // Generate prompt with full task-executor template
-        const prompt = generateTaskPrompt(task, plan, qualityChecks);
-
-        // Execute task
-        const result = await thread.run(prompt);
-
-        // Extract branch name from finalResponse
-        const branch = extractBranchName(result.finalResponse);
-
-        const threadResult: CodexThreadResult = {
-          success: true,
-          taskId: task.id,
-        };
-
-        if (branch) {
-          threadResult.branch = branch;
-        }
-
-        return threadResult;
-      } catch (error) {
-        // Individual task failure - return error result
-        const errorResult: CodexThreadResult = {
-          success: false,
-          taskId: task.id,
-        };
-
-        if (error) {
-          errorResult.error = String(error);
-        }
-
-        return errorResult;
-      }
-    });
-
-    // Wait for ALL threads to complete (even if some fail)
-    const results = await Promise.all(threadPromises);
+    const worktreePaths = await prepareParallelWorktrees(pendingTasks, plan, options);
+    const results = await runPendingTasks(pendingTasks, plan, qualityChecks, options);
 
     // Step 5: Update job status with task results
     for (const result of results) {
@@ -255,14 +203,87 @@ export async function executeParallelPhase(
     // Step 6: Stack branches
     await stackSuccessfulBranches(results, plan, job);
 
-    // Step 7: Clean up worktrees
-    for (const worktreePath of worktreePaths) {
-      await cleanupWorktree(worktreePath, process.cwd());
-    }
+    await cleanupParallelWorktrees(worktreePaths);
   } catch (error) {
     // Phase-level error (setup/coordination failure)
     job.status = 'failed';
     job.error = String(error);
     throw error;
+  }
+}
+
+async function prepareParallelWorktrees(
+  tasks: Task[],
+  plan: Plan,
+  options: ExecutionOptions
+): Promise<string[]> {
+  const worktreePaths: string[] = [];
+
+  for (const task of tasks) {
+    const override = options.taskOverrides?.get(task.id);
+    const worktreePath = override?.worktreePath ?? `.worktrees/${plan.runId}-task-${task.id}`;
+    worktreePaths.push(worktreePath);
+    await createWorktree(worktreePath, 'HEAD', process.cwd());
+  }
+
+  return worktreePaths;
+}
+
+async function runPendingTasks(
+  tasks: Task[],
+  plan: Plan,
+  qualityChecks: Awaited<ReturnType<typeof detectQualityChecksFromConfig>>,
+  options: ExecutionOptions
+): Promise<CodexThreadResult[]> {
+  const threadPromises = tasks.map((task) => runSingleTask(task, plan, qualityChecks, options));
+  return Promise.all(threadPromises);
+}
+
+async function runSingleTask(
+  task: Task,
+  plan: Plan,
+  qualityChecks: Awaited<ReturnType<typeof detectQualityChecksFromConfig>>,
+  options: ExecutionOptions
+): Promise<CodexThreadResult> {
+  try {
+    const override = options.taskOverrides?.get(task.id);
+    const worktreePath = override?.worktreePath ?? `.worktrees/${plan.runId}-task-${task.id}`;
+
+    const promptOptions: TaskPromptOptions = { worktreePath };
+    if (override?.branch) {
+      promptOptions.branchName = override.branch;
+    }
+
+    const prompt = generateTaskPrompt(task, plan, qualityChecks, promptOptions);
+    const result = await runSubagentPrompt(prompt, worktreePath);
+    const branchOutput = extractBranchName(result.stdout) ?? override?.branch;
+
+    const threadResult: CodexThreadResult = {
+      success: true,
+      taskId: task.id,
+    };
+
+    if (branchOutput) {
+      threadResult.branch = branchOutput;
+    }
+
+    return threadResult;
+  } catch (error) {
+    const errorResult: CodexThreadResult = {
+      success: false,
+      taskId: task.id,
+    };
+
+    if (error) {
+      errorResult.error = String(error);
+    }
+
+    return errorResult;
+  }
+}
+
+async function cleanupParallelWorktrees(worktreePaths: string[]): Promise<void> {
+  for (const worktreePath of worktreePaths) {
+    await cleanupWorktree(worktreePath, process.cwd());
   }
 }

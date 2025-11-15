@@ -176,4 +176,27 @@ No phases here.
 
     expect(() => parsePlan(planMarkdown, 'abc123')).toThrow('No phases found');
   });
+
+  it('falls back to expected runId when plan omits Run ID field', () => {
+    const planMarkdown = `# Implementation Plan: Missing Run ID
+
+Feature: fallback-feature
+
+## Phase 1: Setup (Parallel)
+
+### Task 1-1: Task One
+**Description:** Do something
+**Files:**
+- src/one.ts
+
+**Acceptance Criteria:**
+- Done
+
+**Dependencies:** None
+`;
+
+    const plan = parsePlan(planMarkdown, 'abc123');
+    expect(plan.runId).toBe('abc123');
+    expect(plan.featureSlug).toBe('fallback-feature');
+  });
 });

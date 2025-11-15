@@ -8,7 +8,9 @@
  */
 
 import { promises as fs } from 'node:fs';
-import type { ExecutionJob, Plan } from '@/types';
+import type { ExecutionJob, ExecutionOptions, Phase, Plan, TaskOverride } from '@/types';
+import { bootstrapSkills } from '@/utils/bootstrap';
+import { ensureWorktree } from '@/utils/git';
 import { formatMCPResponse, type MCPToolResponse } from '@/utils/mcp-response';
 import { extractRunId, parsePlan } from '@/utils/plan-parser';
 import { validatePlanPath } from '@/utils/validation';
@@ -17,7 +19,10 @@ import { validatePlanPath } from '@/utils/validation';
  * Arguments for the execute handler.
  */
 export interface ExecuteArgs {
-  plan_path: unknown;
+  plan_path?: unknown;
+  plan?: unknown;
+  base_branch?: unknown;
+  tasks?: unknown;
 }
 
 /**
@@ -46,38 +51,10 @@ export async function handleExecute(
   args: ExecuteArgs,
   jobs: Map<string, ExecutionJob>
 ): Promise<MCPToolResponse> {
-  // Validate inputs
-  if (!args.plan_path) {
-    throw new Error('plan_path is required');
-  }
+  // Derive plan data either from explicit payload or plan_path
+  const { plan, runId } = await resolvePlan(args);
 
-  if (typeof args.plan_path !== 'string') {
-    throw new Error('plan_path must be a string');
-  }
-
-  const planPath = args.plan_path;
-
-  // Validate plan path (security: prevent path traversal)
-  validatePlanPath(planPath);
-
-  // Extract runId from path
-  const runId = extractRunId(planPath);
-
-  // Check if job already running
-  const existingJob = jobs.get(runId);
-  if (existingJob?.status === 'running') {
-    throw new Error(`Job ${runId} is already running`);
-  }
-
-  // Read and parse plan
-  let planContent: string;
-  try {
-    planContent = await fs.readFile(planPath, 'utf-8');
-  } catch (_error) {
-    throw new Error(`Plan file not found: ${planPath}`);
-  }
-
-  const plan = parsePlan(planContent, runId);
+  const { taskFilter, taskOverrides } = parseTaskOverrides(args.tasks);
 
   // Create job tracker
   const job: ExecutionJob = {
@@ -89,10 +66,28 @@ export async function handleExecute(
     totalPhases: plan.phases.length,
   };
 
+  if (plan.featureSlug) {
+    job.featureSlug = plan.featureSlug;
+  }
+
   jobs.set(runId, job);
 
+  const executionOptions: ExecutionOptions = {};
+
+  if (typeof args.base_branch === 'string' && args.base_branch.trim().length > 0) {
+    executionOptions.baseBranch = args.base_branch;
+  }
+
+  if (taskFilter && taskFilter.size > 0) {
+    executionOptions.taskFilter = taskFilter;
+  }
+
+  if (taskOverrides && taskOverrides.size > 0) {
+    executionOptions.taskOverrides = taskOverrides;
+  }
+
   // Execute in background (non-blocking)
-  executePhases(plan, job).catch((error) => {
+  executePhases(plan, job, executionOptions).catch((error) => {
     job.status = 'failed';
     job.error = String(error);
     job.completedAt = new Date();
@@ -105,47 +100,176 @@ export async function handleExecute(
   });
 }
 
-/**
- * Executes all phases in the plan sequentially with per-phase code review.
- *
- * This function runs in the background after handleExecute returns.
- * It updates the job status as execution progresses.
- *
- * Review frequency: per-phase (after each phase completes)
- * This ensures quality gates at each major checkpoint.
- *
- * @param plan - Parsed implementation plan
- * @param job - Job tracker to update with progress
- */
-async function executePhases(plan: Plan, job: ExecutionJob): Promise<void> {
-  for (const phase of plan.phases) {
-    job.phase = phase.id;
+async function resolvePlan(args: ExecuteArgs): Promise<{ plan: Plan; runId: string }> {
+  if (args.plan) {
+    return resolveInlinePlan(args.plan);
+  }
 
-    // Execute phase
-    if (phase.strategy === 'parallel') {
-      // Dynamic import to avoid circular dependency
-      const { executeParallelPhase } = await import('@/orchestrator/parallel-phase');
-      await executeParallelPhase(phase, plan, job);
-    } else {
-      // Sequential phase
-      const { executeSequentialPhase } = await import('@/orchestrator/sequential-phase');
-      await executeSequentialPhase(phase, plan, job);
+  return resolvePlanFromPath(args.plan_path);
+}
+
+/**
+ * Drives the plan execution by iterating through phases, honoring strategy, and
+ * delegating each task to a Codex CLI subagent.
+ */
+async function executePhases(
+  plan: Plan,
+  job: ExecutionJob,
+  options: ExecutionOptions
+): Promise<void> {
+  const cwd = process.cwd();
+  const baseBranch = options.baseBranch ?? 'main';
+  await bootstrapSkills(cwd);
+  await ensureWorktree(`.worktrees/${plan.runId}-main`, baseBranch, cwd);
+
+  for (const phase of plan.phases) {
+    const selectedTasks =
+      options.taskFilter && options.taskFilter.size > 0
+        ? phase.tasks.filter((task) => options.taskFilter?.has(task.id))
+        : phase.tasks;
+
+    if (selectedTasks.length === 0) {
+      continue;
     }
 
-    // Code review after phase completes (per-phase frequency)
-    try {
-      const { runCodeReview } = await import('@/orchestrator/code-review');
-      await runCodeReview(phase, plan);
-    } catch (error) {
-      // Code review failure fails the job
-      job.status = 'failed';
-      job.error = `Code review failed for phase ${phase.id}: ${String(error)}`;
-      job.completedAt = new Date();
-      throw error;
+    job.phase = phase.id;
+    const phaseToRun: Phase = {
+      ...phase,
+      tasks: selectedTasks,
+    };
+
+    if (phase.strategy === 'parallel') {
+      const { executeParallelPhase } = await import('@/orchestrator/parallel-phase');
+      await executeParallelPhase(phaseToRun, plan, job, options);
+    } else {
+      const { executeSequentialPhase } = await import('@/orchestrator/sequential-phase');
+      await executeSequentialPhase(phaseToRun, plan, job, options);
     }
   }
 
-  // All phases completed successfully
   job.status = 'completed';
   job.completedAt = new Date();
+}
+
+function parseTaskOverrides(tasks: unknown): {
+  taskFilter?: Set<string>;
+  taskOverrides?: Map<string, TaskOverride>;
+} {
+  if (!tasks) {
+    return {};
+  }
+
+  if (!Array.isArray(tasks)) {
+    throw new Error('tasks must be an array of { id, branch?, worktree_path? } objects');
+  }
+
+  const filter = new Set<string>();
+  const overrides = new Map<string, TaskOverride>();
+
+  for (const entry of tasks) {
+    const normalized = normalizeTaskOverride(entry);
+    filter.add(normalized.id);
+
+    if (normalized.override) {
+      overrides.set(normalized.id, normalized.override);
+    }
+  }
+
+  const result: {
+    taskFilter?: Set<string>;
+    taskOverrides?: Map<string, TaskOverride>;
+  } = {};
+
+  if (filter.size > 0) {
+    result.taskFilter = filter;
+  }
+
+  if (overrides.size > 0) {
+    result.taskOverrides = overrides;
+  }
+
+  return result;
+}
+
+function normalizeTaskOverride(entry: unknown): { id: string; override?: TaskOverride } {
+  if (!entry || typeof entry !== 'object') {
+    throw new Error('task entries must be objects');
+  }
+
+  const candidate = entry as Record<string, unknown>;
+  const id = candidate.id;
+  if (typeof id !== 'string' || id.trim() === '') {
+    throw new Error('task id must be a non-empty string');
+  }
+
+  const override: TaskOverride = {};
+  const branch = candidate.branch;
+  if (branch !== undefined) {
+    if (typeof branch !== 'string' || branch.trim() === '') {
+      throw new Error(`branch override for task ${id} must be a non-empty string`);
+    }
+
+    override.branch = branch;
+  }
+
+  const worktree = candidate.worktree_path;
+  if (worktree !== undefined) {
+    if (typeof worktree !== 'string' || worktree.trim() === '') {
+      throw new Error(`worktree_path override for task ${id} must be a non-empty string`);
+    }
+
+    override.worktreePath = worktree;
+  }
+
+  if (override.branch || override.worktreePath) {
+    return { id, override };
+  }
+
+  return { id };
+}
+
+function ensurePhaseStructure(plan: Plan): void {
+  if (!plan.phases || plan.phases.length === 0) {
+    throw new Error('plan must include at least one phase with tasks');
+  }
+
+  for (const phase of plan.phases) {
+    if (!phase.tasks || phase.tasks.length === 0) {
+      throw new Error(`phase ${phase.id} is missing tasks`);
+    }
+  }
+}
+
+function resolveInlinePlan(planPayload: unknown): { plan: Plan; runId: string } {
+  if (typeof planPayload !== 'object' || planPayload === null) {
+    throw new Error('plan must be an object when provided inline');
+  }
+
+  const rawPlan = planPayload as Plan;
+  if (!rawPlan.runId) {
+    throw new Error('plan.runId is required');
+  }
+
+  ensurePhaseStructure(rawPlan);
+  return { plan: rawPlan, runId: rawPlan.runId };
+}
+
+async function resolvePlanFromPath(planPathValue: unknown): Promise<{ plan: Plan; runId: string }> {
+  if (!planPathValue || typeof planPathValue !== 'string') {
+    throw new Error('plan_path or plan must be provided');
+  }
+
+  validatePlanPath(planPathValue);
+  const runId = extractRunId(planPathValue);
+
+  let planContent: string;
+  try {
+    planContent = await fs.readFile(planPathValue, 'utf-8');
+  } catch {
+    throw new Error(`Plan file not found: ${planPathValue}`);
+  }
+
+  const plan = parsePlan(planContent, runId);
+  ensurePhaseStructure(plan);
+  return { plan, runId };
 }

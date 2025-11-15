@@ -7,15 +7,15 @@ MCP server that brings Spectacular's parallel orchestration methodology to Codex
 
 ## Overview
 
-**spectacular-codex** enables spec-anchored development with automatic parallel task execution via the Codex SDK. It's an MCP (Model Context Protocol) server for Codex CLI, NOT a Claude Code plugin.
+**spectacular-codex** focuses solely on the **execute** phase: it reads a `plan.md`, bootstraps the upstream Spectacular/Superpowers skills, and spawns Codex CLI subagents (one per task) to implement the plan automatically.
 
 Key features:
 
-- **Parallel Execution**: Execute independent tasks concurrently using isolated Codex threads
-- **Spec-Anchored Development**: Generate specs, decompose into tasks, execute with verification
-- **Git-Based State**: Branches as source of truth, no database required
-- **Resume from Failure**: Intelligent recovery detects completed work and resumes from failures
-- **Code Review Loops**: Automatic review with fixer threads for rejected implementations
+- **Codex CLI Subagents**: Each task runs in its own Codex CLI process with `--dangerously-bypass-approvals-and-sandbox --yolo`
+- **Spec-Anchored Context**: You can either point to an on-disk `plan.md` or pass an inline plan object; each task prompt is generated from that structured plan so subagents stay grounded in the spec
+- **Phase Strategies**: Parallel and sequential phases map directly to concurrent vs serial Codex CLI executions
+- **Git-Based State**: Each task writes through an isolated worktree; completion is tracked via branches just like the original Spectacular workflow
+- **Status Tracking**: `subagent_status` reports real-time task state so users can monitor progress or resume after failures
 
 ## Architecture
 
@@ -35,13 +35,13 @@ spectacular-codex follows a 4-layer architecture:
 │  • Job state tracking (in-memory)       │
 │  • Phase orchestration logic            │
 └─────────────┬───────────────────────────┘
-              │ spawns via Codex SDK
+              │ spawns Codex CLI workers
               ▼
 ┌─────────────────────────────────────────┐
-│      Codex SDK Threads (Parallel)       │  ← Execution layer
-│  • Task implementation threads          │
-│  • Code review thread                   │
-│  • Each thread = isolated context       │
+│   Codex CLI Subagents (per task)        │  ← Execution layer
+│  • Runs `codex run --dangerously-bypass-approvals-and-sandbox --yolo`
+│  • One process per task                 │
+│  • Outputs branch hint (`BRANCH:`)      │
 └─────────────┬───────────────────────────┘
               │ work happens in git
               ▼
@@ -105,60 +105,67 @@ For local development, use absolute path:
 Use slash commands in Codex CLI:
 
 ```bash
-# Generate feature specification
-/spectacular:spec "Add user authentication with JWT tokens"
-
-# Decompose spec into executable plan
-/spectacular:plan specs/abc123/spec.md
-
-# Execute plan with parallel orchestration
+# Execute plan and spawn Codex subagents
 /spectacular:execute specs/abc123/plan.md
 
 # Check execution status
-/spectacular:status abc123
+/subagent:status abc123
+
+# Or call spectacular_execute with an inline plan payload
+spectacular_execute <<'JSON'
+{
+  "plan": {
+    "runId": "abc123",
+    "featureSlug": "feature-slug",
+    "phases": [
+      {
+        "id": 1,
+        "name": "Foundation",
+        "strategy": "sequential",
+        "tasks": [
+          {
+            "id": "1-1",
+            "name": "Boot project",
+            "description": "Set up scaffolding",
+            "files": ["src/index.ts"],
+            "acceptanceCriteria": ["Project boots", "Tests pass"]
+          }
+        ]
+      }
+    ]
+  }
+}
+JSON
 ```
 
-See `docs/slash-commands.md` for complete slash command templates.
+See `docs/slash-commands.md` for slash command templates pointing to the new subagent tools.
 
 ## MCP Tools
 
-spectacular-codex provides four MCP tools:
+spectacular-codex now exposes two tools:
 
-### spectacular_spec
+### spectacular_execute / subagent_execute
 
-Generate feature specification from user request.
+Execute an implementation plan by running Codex CLI subagents per task.
 
-**Arguments**:
-- `feature_request` (string): Natural language feature description
+**Arguments** (provide either `plan_path` or `plan`):
+- `plan_path` (string): Path to the plan.md file under `specs/`
+- `plan` (object): Inline plan payload with `{ runId, featureSlug?, phases: [{ id, name, strategy, tasks: [...] }] }`
+- `base_branch` (string, optional): Base branch for `.worktrees/{runId}-main` (defaults to `main`)
+- `tasks` (array, optional): Filter + override set. Each entry: `{ id, branch?, worktree_path? }`
 
-**Returns**: `{ run_id, status, spec_path }`
+**Returns**: `{ run_id, status: 'started' }`
 
-### spectacular_plan
+See [Plan Schema](docs/plan-schema.md) for the full JSON structure when providing `plan`.
 
-Decompose specification into executable task plan.
+### subagent_status
 
-**Arguments**:
-- `spec_path` (string): Path to specification file
-
-**Returns**: `{ run_id, status, plan_path }`
-
-### spectacular_execute
-
-Execute implementation plan with parallel orchestration.
+Poll status for a running/completed subagent job.
 
 **Arguments**:
-- `plan_path` (string): Path to plan.md file
+- `run_id` (string, required): Identifier returned from execute
 
-**Returns**: `{ run_id, status }`
-
-### spectacular_status
-
-Check status of running or completed job.
-
-**Arguments**:
-- `run_id` (string): Job identifier
-
-**Returns**: `{ run_id, status, phase, completed_tasks, failed_tasks, output }`
+**Returns**: `{ run_id, status, phase, tasks[], started_at, completed_at?, error? }`
 
 ## Examples
 
@@ -175,15 +182,15 @@ See [docs/examples/resume-from-failure.md](docs/examples/resume-from-failure.md)
 | Aspect | spectacular (Plugin) | spectacular-codex (MCP) |
 |--------|---------------------|-------------------------|
 | **Runtime** | Claude Code CLI | Codex CLI |
-| **Architecture** | Plugin with skills | MCP server with stdio |
-| **Execution** | Subagents via Task tool | Codex threads via SDK |
-| **Skills** | Separate .md files | Embedded in prompts |
-| **Communication** | Subagent messages | Git branches + job state |
+| **Architecture** | Plugin with skills | MCP server (execute-only) |
+| **Execution** | Built-in subagents | External Codex CLI subagents |
+| **Skills** | Markdown skill files | Bootstrapped commands + embedded prompts |
+| **Communication** | Subagent chat | Git branches + `subagent_status` |
 | **User Interface** | Slash commands in Claude Code | Slash commands in Codex |
 | **State** | Git branches | Git branches (same) |
-| **Parallelism** | Subagent dispatch | Promise.all() threads |
+| **Parallelism** | Tool-level fan-out | Codex CLI processes per task |
 
-**Key Insight**: spectacular-codex is NOT a port of spectacular. It's a from-scratch MCP server that adapts spectacular's methodology to Codex SDK constraints.
+**Key Insight**: spectacular-codex is now dedicated to the execute phase. Spec generation & planning live elsewhere; this repo ensures those plans are carried out automatically via Codex CLI subagents.
 
 ## Development
 

@@ -72,10 +72,7 @@ export function parsePlan(planMarkdown: string, expectedRunId: string): Plan {
   // Extract runId from content
   const runIdMatch = planMarkdown.match(/^Run ID:\s*(.+)$/m);
   const contentRunId = runIdMatch?.[1]?.trim();
-  if (!contentRunId) {
-    throw new Error("Plan missing 'Run ID:' field");
-  }
-  if (contentRunId !== expectedRunId) {
+  if (contentRunId && contentRunId !== expectedRunId) {
     throw new Error(`runId mismatch: expected ${expectedRunId}, found ${contentRunId}`);
   }
 
@@ -106,7 +103,7 @@ function parsePhases(markdown: string): Phase[] {
   const phases: Phase[] = [];
 
   // Match phase headers: ## Phase {N}: {Name} (Strategy)
-  const phaseRegex = /^## Phase (\d+): (.+?) \((Parallel|Sequential)\)$/gm;
+  const phaseRegex = /^##+\s*Phase\s+(\d+)[\s:–-]+(.+?)\s*\((Parallel|Sequential)\)\s*$/gim;
   let match: RegExpExecArray | null;
 
   const phaseMatches: Array<{
@@ -163,7 +160,7 @@ function parseTasks(phaseMarkdown: string): Task[] {
   const tasks: Task[] = [];
 
   // Match task headers: ### Task {N}-{M}: {Name}
-  const taskRegex = /^### Task ([\d-]+): (.+)$/gm;
+  const taskRegex = /^###+\s*Task\s+([\d.-]+)[\s:–-]+(.+)\s*$/gim;
   let match: RegExpExecArray | null;
 
   const taskMatches: Array<{
@@ -174,7 +171,8 @@ function parseTasks(phaseMarkdown: string): Task[] {
 
   match = taskRegex.exec(phaseMarkdown);
   while (match !== null) {
-    const id = match[1] ?? '';
+    const idRaw = match[1] ?? '';
+    const id = idRaw.replace(/\./g, '-');
     const name = match[2]?.trim() ?? '';
 
     taskMatches.push({

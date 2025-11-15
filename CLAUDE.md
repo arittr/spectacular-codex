@@ -4,22 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**spectacular-codex** is an MCP (Model Context Protocol) server that brings Spectacular's parallel orchestration methodology to Codex CLI. It enables spec-anchored development with automatic parallel task execution via the Codex SDK.
+**spectacular-codex** is now an execute-only MCP (Model Context Protocol) server for Codex CLI. It reads a Spectacular `plan.md`, bootstraps the upstream skills, and spawns Codex CLI subagents (separate CLI processes) for every task so the plan is implemented automatically.
 
 **Core Architecture:**
 
-- **MCP Server** (Node.js/TypeScript) - Orchestrates parallel execution, manages job state
-- **Codex SDK** - Spawns isolated threads for parallel task execution
-- **Git Worktrees** - Provides true parallelism with isolated working directories
+- **MCP Server** (Node.js/TypeScript) - Orchestrates sequential/parallel phases, manages job state
+- **Codex CLI Subagents** - Each task runs in a brand-new Codex CLI process launched with `--dangerously-bypass-approvals-and-sandbox --yolo`
+- **Bootstrapped Skills** - `~/.codex/superpowers/... bootstrap` and `~/.codex/spectacular/... bootstrap` are executed before any work begins
+- **Git Worktrees** - `.worktrees/{runId}-main` plus per-task worktrees provide isolation
 - **Stdio Transport** - Standard MCP protocol for Codex CLI integration
 
 **Key Differentiators from spectacular (Claude Code plugin):**
 
 1. **MCP Server vs Plugin** - spectacular-codex is a separate Node.js process, not Claude Code plugin
-2. **Codex Threads vs Subagents** - Uses Codex SDK threads, not Claude Code subagents
-3. **Skills as Prompts** - Embeds skill instructions in prompts, not separate skill files
-4. **Async Job Pattern** - Returns immediately, user polls for status (not streaming)
-5. **Stdio Transport** - Standard input/output protocol, no custom IPC
+2. **Codex CLI Subagents** - Uses standalone Codex CLI processes rather than Claude subagents or in-process SDK threads
+3. **Skills as Prompts** - Skills are bootstrapped locally and referenced directly inside prompts
+4. **Async Job Pattern** - Returns immediately; users poll `subagent_status`
+5. **Danger Mode** - All subagents run with `--dangerously-bypass-approvals-and-sandbox --yolo` so they can mutate worktrees without manual approvals
 
 ## Constitution
 
@@ -67,13 +68,13 @@ See `../spectacular/skills/versioning-constitutions/SKILL.md` for workflow.
 │  • Job state tracking (in-memory)       │
 │  • Phase orchestration logic            │
 └─────────────┬───────────────────────────┘
-              │ spawns via Codex SDK
+              │ spawns Codex CLI workers
               ▼
 ┌─────────────────────────────────────────┐
-│      Codex SDK Threads (Parallel)       │  ← Execution layer
-│  • Task implementation threads          │
-│  • Code review thread                   │
-│  • Each thread = isolated context       │
+│   Codex CLI Subagents (per task)        │  ← Execution layer
+│  • Invoked via `codex run ...`          │
+│  • Emit `BRANCH:` hints                  │
+│  • One CLI process per task             │
 └─────────────┬───────────────────────────┘
               │ work happens in git
               ▼

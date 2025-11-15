@@ -17,11 +17,13 @@
  * validatePlanPath('specs/../etc/passwd'); // throws
  */
 export function validatePlanPath(path: string): void {
-  if (!path.startsWith('specs/')) {
-    throw new Error('Invalid plan path: must be under specs/ directory');
-  }
   if (path.includes('..')) {
     throw new Error('Invalid plan path: path traversal detected');
+  }
+
+  const normalized = path.startsWith('@') ? path.slice(1) : path;
+  if (!normalized.includes('/specs/') && !normalized.startsWith('specs/')) {
+    throw new Error('Invalid plan path: must be under specs/ directory');
   }
 }
 

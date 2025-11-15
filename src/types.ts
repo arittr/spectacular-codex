@@ -44,10 +44,10 @@ export interface Task {
   dependencies?: string[];
 
   /** List of files this task modifies/creates */
-  files: string[];
+  files?: string[];
 
   /** Acceptance criteria for task completion */
-  acceptanceCriteria: string[];
+  acceptanceCriteria?: string[];
 
   /** Git branch created for this task (populated after execution) */
   branch?: string;
@@ -78,7 +78,7 @@ export interface Plan {
   runId: string;
 
   /** Feature slug from spec directory */
-  featureSlug: string;
+  featureSlug?: string;
 
   /** Optional plan title */
   title?: string;
@@ -99,6 +99,9 @@ export interface Plan {
 export interface ExecutionJob {
   /** Unique run identifier matching Plan.runId */
   runId: string;
+
+  /** Feature slug to include in prompts/status */
+  featureSlug?: string;
 
   /** Current job status */
   status: JobStatus;
@@ -129,6 +132,28 @@ export interface ExecutionJob {
 
   /** Error message (if status is 'failed') */
   error?: string;
+}
+
+/**
+ * Optional overrides passed into subagent execution.
+ */
+export interface TaskOverride {
+  /** Custom branch name to instruct the subagent to use */
+  branch?: string;
+  /** Custom worktree path to execute work in */
+  worktreePath?: string;
+}
+
+/**
+ * Execution options derived from tool arguments.
+ */
+export interface ExecutionOptions {
+  /** Base branch to create the main worktree from */
+  baseBranch?: string;
+  /** Filter for the task IDs that should be executed */
+  taskFilter?: Set<string>;
+  /** Optional per-task overrides (branch names, worktree paths, etc.) */
+  taskOverrides?: Map<string, TaskOverride>;
 }
 
 /**

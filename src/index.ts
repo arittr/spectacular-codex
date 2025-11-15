@@ -16,10 +16,6 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { handleExecute } from '@/handlers/execute';
-import { handleInit } from '@/handlers/init';
-import { handlePlan } from '@/handlers/plan';
-import { handleSpec } from '@/handlers/spec';
-import { handleSpecGenerate } from '@/handlers/spec-generate';
 import { handleStatus } from '@/handlers/status';
 import type { ExecutionJob } from '@/types';
 import { formatMCPError } from '@/utils/mcp-response';
@@ -46,94 +42,94 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         description:
-          'Execute implementation plan with automatic parallel/sequential orchestration. Returns immediately with run_id for status polling.',
+          'Execute implementation plan by spawning Codex CLI subagents per task. Returns run_id for status polling.',
         inputSchema: {
           properties: {
+            base_branch: {
+              description: 'Optional base branch for .worktrees/{runId}-main (defaults to main)',
+              type: 'string',
+            },
+            plan: {
+              description:
+                'Inline plan object ({ runId, featureSlug?, phases: [{ id, name, strategy, tasks: [...] }] })',
+              type: 'object',
+            },
             plan_path: {
               description: 'Path to plan.md file (e.g., specs/abc123/plan.md)',
               type: 'string',
             },
+            tasks: {
+              description:
+                'Optional array of task overrides ({ id, branch?, worktree_path? }) to filter execution',
+              items: {
+                properties: {
+                  branch: { type: 'string' },
+                  id: { type: 'string' },
+                  worktree_path: { type: 'string' },
+                },
+                required: ['id'],
+                type: 'object',
+              },
+              type: 'array',
+            },
           },
-          required: ['plan_path'],
+          required: [],
           type: 'object',
         },
         name: 'spectacular_execute',
       },
       {
         description:
-          'Get execution status for a running or completed job. Shows current phase, task statuses, and completion timestamps.',
+          'Execute implementation plan by spawning Codex CLI subagents per task. Alias for spectacular_execute.',
+        inputSchema: {
+          properties: {
+            base_branch: {
+              description: 'Optional base branch for .worktrees/{runId}-main (defaults to main)',
+              type: 'string',
+            },
+            plan: {
+              description:
+                'Inline plan object ({ runId, featureSlug?, phases: [{ id, name, strategy, tasks: [...] }] })',
+              type: 'object',
+            },
+            plan_path: {
+              description: 'Path to plan.md file (e.g., specs/abc123/plan.md)',
+              type: 'string',
+            },
+            tasks: {
+              description:
+                'Optional array of task overrides ({ id, branch?, worktree_path? }) to filter execution',
+              items: {
+                properties: {
+                  branch: { type: 'string' },
+                  id: { type: 'string' },
+                  worktree_path: { type: 'string' },
+                },
+                required: ['id'],
+                type: 'object',
+              },
+              type: 'array',
+            },
+          },
+          required: [],
+          type: 'object',
+        },
+        name: 'subagent_execute',
+      },
+      {
+        description:
+          'Get execution status for a running or completed subagent job. Shows current phase, task statuses, and completion timestamps.',
         inputSchema: {
           properties: {
             run_id: {
-              description: 'Run identifier returned by spectacular_execute',
+              description: 'Run identifier returned by spectacular_execute/subagent_execute',
               type: 'string',
             },
           },
           required: ['run_id'],
           type: 'object',
         },
-        name: 'spectacular_status',
-      },
-      {
-        description:
-          'Generate feature specification using brainstorming and writing-specs skill. Creates spec.md in specs/{slug}/ directory.',
-        inputSchema: {
-          properties: {
-            feature_request: {
-              description: 'Brief feature description to elaborate via brainstorming',
-              type: 'string',
-            },
-          },
-          required: ['feature_request'],
-          type: 'object',
-        },
-        name: 'spectacular_spec',
-      },
-      {
-        description:
-          'Generate implementation plan from specification. Creates plan.md with sequential/parallel phase decomposition.',
-        inputSchema: {
-          properties: {
-            spec_path: {
-              description: 'Path to spec.md file (e.g., specs/my-feature/spec.md)',
-              type: 'string',
-            },
-          },
-          required: ['spec_path'],
-          type: 'object',
-        },
-        name: 'spectacular_plan',
-      },
-      {
-        description:
-          'Install the /spectacular:spec slash command to ~/.codex/prompts/. This enables interactive brainstorming workflow for spec generation.',
-        inputSchema: {
-          properties: {
-            force: {
-              description: 'Force overwrite if slash command already exists',
-              type: 'boolean',
-            },
-          },
-          required: [],
-          type: 'object',
-        },
-        name: 'spectacular_init',
-      },
-      {
-        description:
-          'Generate specification from validated brainstorming handoff. This is called automatically by /spectacular:spec slash command after interactive brainstorming completes.',
-        inputSchema: {
-          properties: {
-            handoff: {
-              description:
-                'Validated requirements package from interactive brainstorming (runId, feature, requirements, architecture, decisions, outOfScope)',
-              type: 'object',
-            },
-          },
-          required: ['handoff'],
-          type: 'object',
-        },
-        name: 'spectacular_spec_generate',
+        name: 'subagent_status',
       },
     ],
   };
@@ -147,17 +143,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case 'spectacular_execute':
+      case 'subagent_execute':
         return await handleExecute(args, jobs);
-      case 'spectacular_status':
+      case 'subagent_status':
         return await handleStatus(args, jobs);
-      case 'spectacular_spec':
-        return await handleSpec(args, jobs);
-      case 'spectacular_spec_generate':
-        return await handleSpecGenerate(args, jobs);
-      case 'spectacular_plan':
-        return await handlePlan(args, jobs);
-      case 'spectacular_init':
-        return await handleInit(args, jobs);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }

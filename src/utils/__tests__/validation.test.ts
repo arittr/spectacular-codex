@@ -11,6 +11,10 @@ describe('validatePlanPath', () => {
     expect(() => validatePlanPath('specs/abc123/plan.md')).not.toThrow();
     expect(() => validatePlanPath('specs/feature-x/plan.md')).not.toThrow();
     expect(() => validatePlanPath('specs/nested/dir/plan.md')).not.toThrow();
+    expect(() =>
+      validatePlanPath('.worktrees/123456-main/specs/123456-feature/plan.md')
+    ).not.toThrow();
+    expect(() => validatePlanPath('@.worktrees/123456-main/specs/feature/plan.md')).not.toThrow();
   });
 
   it('should reject paths not under specs/', () => {

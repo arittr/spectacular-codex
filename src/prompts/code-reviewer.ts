@@ -28,7 +28,10 @@ import type { Phase, Plan } from '@/types';
 export function generateReviewPrompt(phase: Phase, plan: Plan): string {
   const taskIds = phase.tasks.map((task) => task.id).join(', ');
   const taskList = phase.tasks
-    .map((task) => `- **Task ${task.id}**: ${task.name}\n  Files: ${task.files.join(', ')}`)
+    .map((task) => {
+      const files = (task.files ?? ['(unspecified)']).join(', ');
+      return `- **Task ${task.id}**: ${task.name}\n  Files: ${files}`;
+    })
     .join('\n');
 
   return `

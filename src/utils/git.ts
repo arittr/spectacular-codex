@@ -1,3 +1,5 @@
+import { promises as fs } from 'node:fs';
+import nodePath from 'node:path';
 import { execa } from 'execa';
 
 /**
@@ -15,6 +17,26 @@ export async function createWorktree(path: string, baseRef: string, cwd?: string
   await execa('git', ['worktree', 'add', path, '--detach', baseRef], {
     cwd: cwd ?? process.cwd(),
   });
+}
+
+/**
+ * Ensures a git worktree exists at the specified path.
+ *
+ * If the directory already exists we assume the worktree was previously created
+ * and skip re-creation to avoid git errors. Otherwise a new worktree is added.
+ */
+export async function ensureWorktree(path: string, baseRef: string, cwd?: string): Promise<void> {
+  const root = cwd ?? process.cwd();
+  const absolutePath = nodePath.isAbsolute(path) ? path : nodePath.join(root, path);
+
+  try {
+    await fs.access(absolutePath);
+    return;
+  } catch {
+    // Directory missing – fall through to create
+  }
+
+  await createWorktree(path, baseRef, cwd);
 }
 
 /**

@@ -16,11 +16,11 @@
  */
 
 import { promises as fs } from 'node:fs';
-import { Codex } from '@openai/codex-sdk';
-import { generateTaskPrompt } from '@/prompts/task-executor';
-import type { ExecutionJob, Phase, Plan } from '@/types';
+import { generateTaskPrompt, type TaskPromptOptions } from '@/prompts/task-executor';
+import type { ExecutionJob, ExecutionOptions, Phase, Plan } from '@/types';
 import { checkExistingWork } from '@/utils/branch-tracker';
 import { detectQualityChecks } from '@/utils/project-config';
+import { runSubagentPrompt } from '@/utils/subagent-runner';
 
 /**
  * Extracts branch name from Codex thread output.
@@ -131,7 +131,8 @@ function updateJobTaskStatus(
 export async function executeSequentialPhase(
   phase: Phase,
   plan: Plan,
-  job: ExecutionJob
+  job: ExecutionJob,
+  options: ExecutionOptions = {}
 ): Promise<void> {
   try {
     // Step 1: Check existing work (resume logic)
@@ -165,22 +166,19 @@ export async function executeSequentialPhase(
       updateJobTaskStatus(job, task.id, { status: 'running' });
 
       try {
-        // Create Codex instance
-        const codex = new Codex();
+        const override = options.taskOverrides?.get(task.id);
+        const promptOptions: TaskPromptOptions = {
+          worktreePath: mainWorktreePath,
+        };
 
-        // Start thread with working directory
-        const thread = codex.startThread({
-          workingDirectory: mainWorktreePath,
-        });
+        if (override?.branch) {
+          promptOptions.branchName = override.branch;
+        }
 
-        // Generate prompt with full task-executor template
-        const prompt = generateTaskPrompt(task, plan, qualityChecks);
+        const prompt = generateTaskPrompt(task, plan, qualityChecks, promptOptions);
 
-        // Execute task
-        const result = await thread.run(prompt);
-
-        // Extract branch name from finalResponse
-        const branch = extractBranchName(result.finalResponse);
+        const result = await runSubagentPrompt(prompt, mainWorktreePath);
+        const branch = extractBranchName(result.stdout) ?? override?.branch;
 
         // Update task status: completed
         const completedStatus: { status: 'completed'; branch?: string } = {

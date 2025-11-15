@@ -22,6 +22,13 @@ export interface QualityChecks {
   lint: string;
 }
 
+export interface TaskPromptOptions {
+  /** Custom worktree path override */
+  worktreePath?: string;
+  /** Explicit branch name override */
+  branchName?: string;
+}
+
 /**
  * Generates a prompt for task execution with embedded skill instructions.
  *
@@ -34,10 +41,17 @@ export interface QualityChecks {
  * @param qualityChecks - Commands for running tests, type checks, and linting
  * @returns Complete prompt with embedded skill instructions
  */
-export function generateTaskPrompt(task: Task, plan: Plan, qualityChecks: QualityChecks): string {
-  const worktreePath = `.worktrees/${plan.runId}-task-${task.id}`;
-  const specPath = `specs/${plan.runId}-${plan.featureSlug}/spec.md`;
+export function generateTaskPrompt(
+  task: Task,
+  plan: Plan,
+  qualityChecks: QualityChecks,
+  options?: TaskPromptOptions
+): string {
+  const worktreePath = options?.worktreePath ?? `.worktrees/${plan.runId}-task-${task.id}`;
+  const featureSlug = plan.featureSlug ?? 'feature';
+  const specPath = `specs/${plan.runId}-${featureSlug}/spec.md`;
   const branchPrefix = `${plan.runId}-task-${task.id}`;
+  const branchInstruction = options?.branchName ?? `${branchPrefix}-{name}`;
   const taskNumber = task.id.replace('-', '.');
 
   return `
@@ -48,10 +62,10 @@ You are implementing Task ${task.id}: ${task.name}
 **Description:** ${task.description}
 
 **Files to create/modify:**
-${task.files.map((file) => `- ${file}`).join('\n')}
+${(task.files ?? ['(caller did not specify files)']).map((file) => `- ${file}`).join('\n')}
 
 **Acceptance Criteria:**
-${task.acceptanceCriteria.map((criteria) => `- [ ] ${criteria}`).join('\n')}
+${(task.acceptanceCriteria ?? ['caller-did-not-specify criteria']).map((criteria) => `- [ ] ${criteria}`).join('\n')}
 
 ## Your Process
 
@@ -87,13 +101,13 @@ Follow **test-driven-development** skill:
 
 \`\`\`bash
 # RED: Write failing test
-${qualityChecks.test} src/prompts/task-executor.test.ts
+${qualityChecks.test}
 
 # GREEN: Write minimal implementation
 # (implement code here)
 
 # Verify test passes
-${qualityChecks.test} src/prompts/task-executor.test.ts
+${qualityChecks.test}
 \`\`\`
 
 ### 4. Run Quality Checks
@@ -136,7 +150,7 @@ Use **phase-task-verification** skill for git operations:
 git add .
 
 # Create branch with git-spice
-gs branch create ${branchPrefix}-{name} -m "[Task ${taskNumber}] ${task.name}"
+gs branch create ${branchInstruction} -m "[Task ${taskNumber}] ${task.name}"
 
 # Commit implementation
 git commit -m "feat: ${task.name}
@@ -148,9 +162,9 @@ ${task.description}
 Co-Authored-By: Claude <noreply@anthropic.com>"
 \`\`\`
 
-**Branch naming pattern:** ${branchPrefix}-{descriptive-name}
+**Branch naming pattern:** ${branchInstruction}
 - Example: ${branchPrefix}-task-executor-prompt
-- Keep name short and descriptive (kebab-case)
+- Keep name short and descriptive (kebab-case) unless an explicit branch name was provided
 
 ### 6. Detach HEAD (CRITICAL)
 
