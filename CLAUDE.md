@@ -173,11 +173,41 @@ codex
 
 ### Core Dependencies
 
-- **@openai/codex** - Codex SDK for spawning threads (NOT YET ADDED - pending implementation)
-- **@modelcontextprotocol/sdk** - MCP server implementation (NOT YET ADDED - pending implementation)
-- **execa** - Safe shell command execution (NOT YET ADDED - pending implementation)
+- **@openai/codex-sdk** - Codex TypeScript SDK for spawning Codex CLI subagents (INSTALLED - see package.json)
+- **@modelcontextprotocol/sdk** - MCP server implementation (INSTALLED - see package.json)
+- **execa** - Safe shell command execution for git operations (INSTALLED - see package.json)
 
-**Note:** Current package.json has boilerplate dependencies. Real dependencies will be added during implementation.
+**CRITICAL: Use Codex SDK for Subagent Execution**
+
+**DO NOT use raw execa or bash commands to spawn Codex CLI subagents.**Instead, use the official Codex TypeScript SDK:
+
+```typescript
+import { Codex } from '@openai/codex-sdk';
+
+// ✅ CORRECT: Use Codex SDK
+const codex = new Codex({
+  workingDirectory: `.worktrees/${runId}-task-${taskId}`,
+  // ... other config
+});
+
+const thread = codex.startThread();
+const result = await thread.run(prompt);
+
+// ❌ WRONG: Don't use execa for Codex CLI
+import { execa } from 'execa';
+await execa('codex', ['run', '--yolo', ...], { cwd: worktree });
+```
+
+**Why Codex SDK is required:**
+1. **Proper process management**: SDK handles thread lifecycle, cleanup, and error recovery
+2. **Structured I/O**: Typed interfaces for prompts, responses, and progress events
+3. **Concurrent execution**: SDK manages multiple threads without shell command limits
+4. **Better error handling**: SDK provides structured errors vs parsing stderr
+5. **Official support**: SDK is maintained by OpenAI for Codex integration
+
+**Reference:** [Codex TypeScript SDK](https://github.com/openai/codex/tree/main/sdk/typescript)
+
+**Note:** execa is still used for git operations (git worktree, git branch, etc.), but **never** for spawning Codex CLI subagents.
 
 ### Development Dependencies
 

@@ -74,13 +74,13 @@ The stack prioritizes:
 
 ## Core Dependencies
 
-### @openai/codex
+### @openai/codex-sdk
 
-**Purpose:** Spawn and manage Codex SDK threads for parallel task execution.
+**Purpose:** Spawn and manage Codex CLI subagents for parallel task execution.
 
 **Usage:**
 ```typescript
-import { Codex } from '@openai/codex';
+import { Codex } from '@openai/codex-sdk';
 
 const codex = new Codex({
   workingDirectory: '.worktrees/abc123-task-1'
@@ -291,7 +291,7 @@ pm2 start spectacular-codex
 |------------|---------|-----------|
 | Node.js 18+ | Runtime | ESM, modern APIs, Codex SDK compat |
 | TypeScript Strict | Language | Type safety, refactoring, docs |
-| @openai/codex | Thread spawning | Official SDK, parallel execution |
+| @openai/codex-sdk | Codex CLI subagents | Official SDK, parallel execution |
 | @modelcontextprotocol/sdk | MCP server | Standard protocol, stdio transport |
 | execa | Shell commands | Security, structure, cross-platform |
 | git-spice | Branch management | Stacked workflow, PR organization |

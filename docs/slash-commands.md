@@ -4,12 +4,12 @@ This document provides slash command templates for using spectacular-codex with 
 
 ## Overview
 
-spectacular-codex provides four slash commands that map to MCP tools:
+spectacular-codex is an **execute-only** MCP server. Spec generation and planning happen elsewhere (e.g., in the main Spectacular plugin or directly in Codex CLI).
 
-- `/spectacular:spec` - Generate feature specification
-- `/spectacular:plan` - Decompose spec into tasks
-- `/spectacular:execute` - Execute plan with parallel orchestration
-- `/spectacular:status` - Check job status
+The MCP server provides two slash commands:
+
+- `/spectacular:execute` (or `/subagent:execute`) - Execute a plan with parallel orchestration
+- `/subagent:status` - Check job status
 
 ## Installation
 
@@ -21,97 +21,6 @@ cd ~/.codex/prompts
 ```
 
 Copy each template below into a separate file.
-
-## /spectacular:spec
-
-**File**: `~/.codex/prompts/spectacular-spec.md`
-
-```markdown
----
-description: Generate feature specification with brainstorming
----
-
-Use the spectacular_spec MCP tool to generate a feature specification from a natural language request.
-
-Call the tool with the feature request:
-
-\`\`\`json
-{
-  "tool": "spectacular_spec",
-  "feature_request": "$1"
-}
-\`\`\`
-
-The tool will return a run_id. Poll for completion using:
-
-\`\`\`json
-{
-  "tool": "spectacular_status",
-  "run_id": "{returned_run_id}"
-}
-\`\`\`
-
-When status is "completed", the spec will be available at the path specified in the response.
-```
-
-**Usage**:
-
-```bash
-/spectacular:spec "Add user authentication with JWT tokens"
-```
-
-**What it does**:
-
-1. Spawns a Codex thread to brainstorm the feature
-2. Generates a specification document in `specs/{run_id}/spec.md`
-3. Returns immediately with run_id for status polling
-4. Specification follows writing-specs skill pattern (lean, constitution-heavy)
-
-## /spectacular:plan
-
-**File**: `~/.codex/prompts/spectacular-plan.md`
-
-```markdown
----
-description: Decompose specification into executable task plan
----
-
-Use the spectacular_plan MCP tool to decompose a feature specification into an executable plan with sequential and parallel phases.
-
-Call the tool with the spec path:
-
-\`\`\`json
-{
-  "tool": "spectacular_plan",
-  "spec_path": "$1"
-}
-\`\`\`
-
-The tool will return a run_id. Poll for completion using:
-
-\`\`\`json
-{
-  "tool": "spectacular_status",
-  "run_id": "{returned_run_id}"
-}
-\`\`\`
-
-When status is "completed", the plan will be available at the path specified in the response.
-```
-
-**Usage**:
-
-```bash
-/spectacular:plan specs/abc123/spec.md
-```
-
-**What it does**:
-
-1. Spawns a Codex thread to analyze the specification
-2. Decomposes into tasks grouped by sequential/parallel phases
-3. Validates task quality (no XL tasks, explicit file paths)
-4. Generates `specs/{run_id}/plan.md` with execution strategy
-5. Calculates parallelization time savings
 
 ## /spectacular:execute
 
@@ -133,14 +42,35 @@ Call the tool with the plan path:
 }
 \`\`\`
 
-The tool will return a run_id. Poll for status using:
+Or with an inline plan object:
 
 \`\`\`json
 {
-  "tool": "spectacular_status",
-  "run_id": "{returned_run_id}"
+  "tool": "spectacular_execute",
+  "plan": {
+    "runId": "abc123",
+    "featureSlug": "feature-name",
+    "phases": [
+      {
+        "id": 1,
+        "name": "Foundation",
+        "strategy": "sequential",
+        "tasks": [
+          {
+            "id": "1-1",
+            "name": "Setup project",
+            "description": "Initialize project structure",
+            "files": ["src/index.ts"],
+            "acceptanceCriteria": ["Project boots", "Tests pass"]
+          }
+        ]
+      }
+    ]
+  }
 }
 \`\`\`
+
+The tool will return a run_id. Poll for status using /subagent:status.
 
 Poll every 30-60 seconds to check progress. Execution may take several hours depending on the plan size.
 ```
@@ -148,7 +78,12 @@ Poll every 30-60 seconds to check progress. Execution may take several hours dep
 **Usage**:
 
 ```bash
+# Execute from plan.md file
 /spectacular:execute specs/abc123/plan.md
+
+# Execute with inline plan object
+/spectacular:execute
+# (then paste plan JSON)
 ```
 
 **What it does**:
@@ -156,11 +91,11 @@ Poll every 30-60 seconds to check progress. Execution may take several hours dep
 1. Creates git worktrees for isolation (`.worktrees/{run_id}-main/`, `.worktrees/{run_id}-task-N/`)
 2. Executes phases sequentially, tasks within phases in parallel
 3. For each task:
-   - Spawns isolated Codex thread in dedicated worktree
+   - Spawns isolated Codex CLI process in dedicated worktree
    - Implements task following TDD pattern
    - Creates branch `{run_id}-task-{id}-{name}`
    - Detaches HEAD for safety
-4. After each phase:
+4. After each phase (if code review enabled):
    - Spawns code review thread
    - Reviews all task implementations
    - Spawns fixer threads for rejected tasks
@@ -169,22 +104,49 @@ Poll every 30-60 seconds to check progress. Execution may take several hours dep
 6. Cleans up worktrees on completion
 7. Returns immediately, executes in background
 
-## /spectacular:status
+## /subagent:execute
 
-**File**: `~/.codex/prompts/spectacular-status.md`
+**File**: `~/.codex/prompts/subagent-execute.md`
+
+Alias for `/spectacular:execute`. Provides identical functionality.
 
 ```markdown
 ---
-description: Check status of running or completed spectacular job
+description: Execute implementation plan (alias for spectacular:execute)
 ---
 
-Use the spectacular_status MCP tool to check the status of a running or completed job.
+Use the subagent_execute MCP tool to execute an implementation plan.
+
+This is an alias for spectacular_execute with identical functionality.
+
+Call the tool with the plan path:
+
+\`\`\`json
+{
+  "tool": "subagent_execute",
+  "plan_path": "$1"
+}
+\`\`\`
+
+See /spectacular:execute documentation for full details.
+```
+
+## /subagent:status
+
+**File**: `~/.codex/prompts/subagent-status.md`
+
+```markdown
+---
+description: Check status of running or completed subagent job
+---
+
+Use the subagent_status MCP tool to check the status of a running or completed job.
 
 Call the tool with the run_id:
 
 \`\`\`json
 {
-  "tool": "spectacular_status",
+  "tool": "subagent_status",
   "run_id": "$1"
 }
 \`\`\`
@@ -194,13 +156,13 @@ The response includes:
 - Current phase being executed
 - Completed tasks
 - Failed tasks (if any)
-- Output from last operation
+- Error details (if failed)
 ```
 
 **Usage**:
 
 ```bash
-/spectacular:status abc123
+/subagent:status abc123
 ```
 
 **What it returns**:
@@ -209,48 +171,59 @@ The response includes:
 {
   "run_id": "abc123",
   "status": "running",
-  "phase": "Phase 2 (Parallel)",
-  "completed_tasks": [
-    { "id": "1.1", "name": "setup-project", "branch": "abc123-task-1-1-setup-project" },
-    { "id": "2.1", "name": "implement-auth", "branch": "abc123-task-2-1-implement-auth" }
+  "phase": 2,
+  "tasks": [
+    {
+      "id": "1-1",
+      "name": "setup-project",
+      "status": "completed",
+      "branch": "abc123-task-1-1-setup-project"
+    },
+    {
+      "id": "2-1",
+      "name": "implement-auth",
+      "status": "running",
+      "branch": "abc123-task-2-1-implement-auth"
+    }
   ],
-  "failed_tasks": [],
-  "output": "Executing task 2.2 in .worktrees/abc123-task-2-2/"
+  "started_at": "2025-01-14T10:30:00Z",
+  "completed_at": null,
+  "error": null
 }
 ```
 
 ## Complete Workflow Example
 
-Here's a typical workflow using all four slash commands:
+Here's a typical workflow using spectacular-codex:
 
 ```bash
-# 1. Generate specification
-/spectacular:spec "Add user authentication with JWT tokens and refresh tokens"
-# Returns: run_id = abc123
+# Prerequisite: Create plan.md using Spectacular plugin or manually
+# Example structure:
+# specs/abc123-auth/plan.md:
+# ---
+# Run ID: abc123
+# Feature: auth
+#
+# ## Phase 1: Foundation (Sequential)
+# ### Task 1-1: Setup
+# **Description:** Initialize project
+# **Files:** src/index.ts
+# **Acceptance Criteria:** Project boots
 
-# 2. Poll for spec completion
-/spectacular:status abc123
-# When completed, spec is at specs/abc123/spec.md
+# 1. Execute plan
+/spectacular:execute specs/abc123-auth/plan.md
+# Returns: { "run_id": "abc123", "status": "started" }
 
-# 3. Generate execution plan
-/spectacular:plan specs/abc123/spec.md
-# Returns: run_id = abc123 (same)
-
-# 4. Poll for plan completion
-/spectacular:status abc123
-# When completed, plan is at specs/abc123/plan.md
-
-# 5. Execute plan
-/spectacular:execute specs/abc123/plan.md
-# Returns: run_id = abc123 (same)
-
-# 6. Poll for execution progress
-/spectacular:status abc123
+# 2. Poll for execution progress
+/subagent:status abc123
 # Repeat every 30-60 seconds until status is "completed"
 
-# 7. When complete, review branches
+# 3. When complete, review branches
 git branch | grep abc123
 # Shows all task branches created during execution
+
+# 4. Submit stacked PRs
+gs stack submit
 ```
 
 ## Resuming from Failure
@@ -288,55 +261,112 @@ See [examples/resume-from-failure.md](examples/resume-from-failure.md) for detai
 
 ### Issue: "Tool returned error"
 
-**Solution**: Check the MCP server logs. If running locally, stderr will show errors.
+**Solution**: Check the error field in the response. Common errors:
+- `plan_path or plan must be provided` - Missing required argument
+- `Plan file not found` - Invalid path or file doesn't exist
+- `Invalid plan path` - Path doesn't match `specs/{runId}-{slug}/plan.md` format
+- `runId mismatch` - plan_path runId doesn't match plan content
 
 ### Issue: "Status shows 'failed'"
 
-**Solution**: Check the output field in status response for error details. Review task branches for partial work.
+**Solution**: Check the `error` field in status response for error details. Review task branches for partial work.
 
 ### Issue: "Execution seems stuck"
 
-**Solution**: Poll status to see current phase and tasks. Long-running tasks (like E2E tests) may take time.
+**Solution**: Poll status to see current phase and tasks. Long-running tasks (like E2E tests) may take time. Check task status field for progress.
 
 ## Advanced Usage
 
-### Custom Worktree Location
+### Inline Plan Execution
 
-Set `SPECTACULAR_WORKTREE_DIR` environment variable:
+Instead of pointing to `plan.md`, you can provide an inline plan object:
+
+```bash
+/spectacular:execute
+```
 
 ```json
 {
-  "spectacular-codex": {
-    "command": "npx",
-    "args": ["spectacular-codex"],
-    "env": {
-      "SPECTACULAR_WORKTREE_DIR": "/tmp/spectacular-worktrees"
-    }
+  "plan": {
+    "runId": "def456",
+    "featureSlug": "inline-test",
+    "phases": [
+      {
+        "id": 1,
+        "name": "Quick Test",
+        "strategy": "parallel",
+        "tasks": [
+          {
+            "id": "1-1",
+            "name": "Task 1",
+            "description": "Do thing 1",
+            "files": ["src/thing1.ts"],
+            "acceptanceCriteria": ["Thing 1 works"]
+          },
+          {
+            "id": "1-2",
+            "name": "Task 2",
+            "description": "Do thing 2",
+            "files": ["src/thing2.ts"],
+            "acceptanceCriteria": ["Thing 2 works"]
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-### Parallel Execution Limit
+See [plan-schema.md](plan-schema.md) for full plan structure.
 
-Set `SPECTACULAR_MAX_PARALLEL` to limit concurrent threads:
+### Custom Base Branch
+
+By default, worktrees are created from `main`. To use a different base:
 
 ```json
 {
-  "spectacular-codex": {
-    "command": "npx",
-    "args": ["spectacular-codex"],
-    "env": {
-      "SPECTACULAR_MAX_PARALLEL": "3"
-    }
-  }
+  "tool": "spectacular_execute",
+  "plan_path": "specs/abc123/plan.md",
+  "base_branch": "develop"
 }
 ```
 
-Default is unlimited (all parallel tasks execute concurrently).
+### Task Filtering
+
+Execute specific tasks only:
+
+```json
+{
+  "tool": "spectacular_execute",
+  "plan_path": "specs/abc123/plan.md",
+  "tasks": [
+    { "id": "1-1" },
+    { "id": "2-3" }
+  ]
+}
+```
+
+### Custom Worktree Paths
+
+Override worktree paths per task (useful for resume scenarios):
+
+```json
+{
+  "tool": "spectacular_execute",
+  "plan_path": "specs/abc123/plan.md",
+  "tasks": [
+    {
+      "id": "1-1",
+      "worktree_path": ".worktrees/abc123-task-1-1-custom"
+    }
+  ]
+}
+```
 
 ## References
 
 - [MCP Protocol Documentation](https://modelcontextprotocol.io/)
-- [Codex CLI Documentation](https://github.com/openai/codex)
+- [Codex SDK Documentation](https://github.com/openai/codex/tree/main/sdk/typescript)
 - [spectacular-codex README](../README.md)
+- [Plan Schema](plan-schema.md)
 - [Architecture Documentation](constitutions/current/architecture.md)

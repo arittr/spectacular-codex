@@ -3,7 +3,7 @@
  *
  * These tests verify:
  * - MCP server initialization
- * - Tool registration (execute, status, spec, plan)
+ * - Tool registration (execute, status)
  * - Error handling at tool boundary
  * - Job state sharing across handlers
  *
@@ -37,8 +37,6 @@ vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
 // Mock handlers
 const mockExecuteHandler = vi.fn();
 const mockStatusHandler = vi.fn();
-const mockSpecHandler = vi.fn();
-const mockPlanHandler = vi.fn();
 
 vi.mock('@/handlers/execute', () => ({
   handleExecute: mockExecuteHandler,
@@ -46,14 +44,6 @@ vi.mock('@/handlers/execute', () => ({
 
 vi.mock('@/handlers/status', () => ({
   handleStatus: mockStatusHandler,
-}));
-
-vi.mock('@/handlers/spec', () => ({
-  handleSpec: mockSpecHandler,
-}));
-
-vi.mock('@/handlers/plan', () => ({
-  handlePlan: mockPlanHandler,
 }));
 
 describe('MCP Server Core', () => {
@@ -118,7 +108,7 @@ describe('MCP Server Core', () => {
     });
   });
 
-  it('routes spectacular_status to handleStatus', async () => {
+  it('routes subagent_status to handleStatus', async () => {
     mockStatusHandler.mockResolvedValue({
       phase: 1,
       run_id: 'abc123',
@@ -135,7 +125,7 @@ describe('MCP Server Core', () => {
     const result = await callHandler({
       params: {
         arguments: { run_id: 'abc123' },
-        name: 'spectacular_status',
+        name: 'subagent_status',
       },
     });
 
@@ -146,70 +136,6 @@ describe('MCP Server Core', () => {
       run_id: 'abc123',
       status: 'running',
       tasks: [],
-    });
-  });
-
-  it('routes spectacular_spec to handleSpec', async () => {
-    mockSpecHandler.mockResolvedValue({
-      feature_slug: 'my-feature',
-      status: 'created',
-    });
-
-    await import('@/index');
-
-    const callHandler = mockSetRequestHandler.mock.calls.find(
-      (call) => call[0] === CallToolRequestSchema
-    )?.[1];
-
-    const result = await callHandler({
-      params: {
-        arguments: { description: 'Test feature' },
-        name: 'spectacular_spec',
-      },
-    });
-
-    expect(mockSpecHandler).toHaveBeenCalledWith(
-      {
-        description: 'Test feature',
-      },
-      expect.any(Map) // jobs tracker
-    );
-
-    expect(result).toEqual({
-      feature_slug: 'my-feature',
-      status: 'created',
-    });
-  });
-
-  it('routes spectacular_plan to handlePlan', async () => {
-    mockPlanHandler.mockResolvedValue({
-      run_id: 'abc123',
-      status: 'created',
-    });
-
-    await import('@/index');
-
-    const callHandler = mockSetRequestHandler.mock.calls.find(
-      (call) => call[0] === CallToolRequestSchema
-    )?.[1];
-
-    const result = await callHandler({
-      params: {
-        arguments: { spec_path: 'specs/my-feature/spec.md' },
-        name: 'spectacular_plan',
-      },
-    });
-
-    expect(mockPlanHandler).toHaveBeenCalledWith(
-      {
-        spec_path: 'specs/my-feature/spec.md',
-      },
-      expect.any(Map) // jobs tracker
-    );
-
-    expect(result).toEqual({
-      run_id: 'abc123',
-      status: 'created',
     });
   });
 
@@ -277,7 +203,15 @@ describe('MCP Server Core', () => {
           tasks: [],
           totalPhases: 2,
         });
-        return { run_id: 'abc123', status: 'started' };
+        return {
+          content: [
+            {
+              text: JSON.stringify({ run_id: 'abc123', status: 'started' }, null, 2),
+              type: 'text',
+            },
+          ],
+          isError: false,
+        };
       }
     );
 
@@ -287,10 +221,22 @@ describe('MCP Server Core', () => {
         const job = jobs.get('abc123');
         if (!job) throw new Error('Job not found');
         return {
-          phase: job.phase,
-          run_id: job.runId,
-          status: job.status,
-          tasks: job.tasks,
+          content: [
+            {
+              text: JSON.stringify(
+                {
+                  phase: job.phase,
+                  run_id: job.runId,
+                  status: job.status,
+                  tasks: job.tasks,
+                },
+                null,
+                2
+              ),
+              type: 'text',
+            },
+          ],
+          isError: false,
         };
       }
     );
@@ -313,11 +259,14 @@ describe('MCP Server Core', () => {
     const statusResult = await callHandler({
       params: {
         arguments: { run_id: 'abc123' },
-        name: 'spectacular_status',
+        name: 'subagent_status',
       },
     });
 
-    expect(statusResult).toEqual({
+    // Parse the response text
+    const parsedResult = JSON.parse(statusResult.content[0].text);
+
+    expect(parsedResult).toEqual({
       phase: 1,
       run_id: 'abc123',
       status: 'running',
@@ -342,11 +291,21 @@ describe('MCP Server Core', () => {
           description: expect.stringContaining('Execute implementation plan'),
           inputSchema: expect.objectContaining({
             properties: expect.objectContaining({
-              plan_path: expect.any(Object),
+              plan: expect.any(Object),
             }),
             type: 'object',
           }),
           name: 'spectacular_execute',
+        },
+        {
+          description: expect.stringContaining('Execute implementation plan'),
+          inputSchema: expect.objectContaining({
+            properties: expect.objectContaining({
+              plan: expect.any(Object),
+            }),
+            type: 'object',
+          }),
+          name: 'subagent_execute',
         },
         {
           description: expect.stringContaining('Get execution status'),
@@ -356,27 +315,7 @@ describe('MCP Server Core', () => {
             }),
             type: 'object',
           }),
-          name: 'spectacular_status',
-        },
-        {
-          description: expect.stringContaining('Generate feature specification'),
-          inputSchema: expect.objectContaining({
-            properties: expect.objectContaining({
-              feature_request: expect.any(Object),
-            }),
-            type: 'object',
-          }),
-          name: 'spectacular_spec',
-        },
-        {
-          description: expect.stringContaining('Generate implementation plan'),
-          inputSchema: expect.objectContaining({
-            properties: expect.objectContaining({
-              spec_path: expect.any(Object),
-            }),
-            type: 'object',
-          }),
-          name: 'spectacular_plan',
+          name: 'subagent_status',
         },
       ],
     });

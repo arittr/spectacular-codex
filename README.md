@@ -1,7 +1,7 @@
 # spectacular-codex
 
->[!WARNING]
->This isn't working yet - but will be soon!
+> [!NOTE]
+> **Execute-only MCP Server**: spectacular-codex implements the execute phase of Spectacular's methodology for Codex CLI. Spec generation and planning happen elsewhere (e.g., in the main Spectacular plugin or Codex CLI directly).
 
 MCP server that brings Spectacular's parallel orchestration methodology to Codex CLI.
 
@@ -142,9 +142,9 @@ See `docs/slash-commands.md` for slash command templates pointing to the new sub
 
 ## MCP Tools
 
-spectacular-codex now exposes two tools:
+spectacular-codex exposes 3 MCP tools:
 
-### spectacular_execute / subagent_execute
+### spectacular_execute
 
 Execute an implementation plan by running Codex CLI subagents per task.
 
@@ -158,12 +158,16 @@ Execute an implementation plan by running Codex CLI subagents per task.
 
 See [Plan Schema](docs/plan-schema.md) for the full JSON structure when providing `plan`.
 
+### subagent_execute
+
+Alias for `spectacular_execute`. Provides the same functionality with identical arguments and return values.
+
 ### subagent_status
 
 Poll status for a running/completed subagent job.
 
 **Arguments**:
-- `run_id` (string, required): Identifier returned from execute
+- `run_id` (string, required): Identifier returned from spectacular_execute/subagent_execute
 
 **Returns**: `{ run_id, status, phase, tasks[], started_at, completed_at?, error? }`
 
@@ -240,19 +244,30 @@ See `CLAUDE.md` for comprehensive development guidelines, including:
 
 ## Project Status
 
-**Current State**: Constitution v1 complete, implementation in progress.
+**Current State**: Core implementation complete, execute-only MCP server functional.
 
 **Implemented**:
-- Constitution and architectural documentation
-- Project structure and build configuration
-- Type definitions and interfaces
+- ✅ Constitution v1 and architectural documentation
+- ✅ MCP server with 3 tools (spectacular_execute, subagent_execute, subagent_status)
+- ✅ Utility modules (git operations, plan parsing, branch tracking)
+- ✅ Prompt template generators (task executor, code reviewer, fixer)
+- ✅ Orchestration logic (parallel/sequential phases, code review loops)
+- ✅ Async job pattern with background execution
+- ✅ Git worktree isolation for parallel tasks
+- ✅ Resume logic (detects existing branches, only runs pending tasks)
+- ✅ Unit and integration tests
 
-**Next Steps**:
-- Core utility modules (git operations, plan parsing)
-- Prompt template generators
-- Orchestration logic (parallel, sequential, code review)
-- MCP tool handlers
-- Integration and E2E tests
+**Known Limitations**:
+- Requires Codex SDK (must be installed separately)
+- Some integration tests require actual Codex CLI environment
+- Sequential phase tests need real git worktrees (skipped in CI)
+- Timing-sensitive tests use arbitrary waits (proper event mechanism needed)
+
+**Future Enhancements**:
+- Event-driven status updates (replace polling with SSE or WebSockets)
+- Better error recovery and retry mechanisms
+- Performance optimization for large plans (100+ tasks)
+- Metrics and observability (task duration, success rates)
 
 ## Related Projects
 
